@@ -5,51 +5,51 @@ The system models customers, vendors, stores, and riders interacting through a c
 
 This project is built for educational and portfolio purposes to demonstrate backend architecture, system design, and API development practices.
 
-- Tech Stack
+## **Tech Stack**
 
-Laravel 12
+- Laravel 12
 
-PHP 8.3
+- PHP 8.3
 
-MySQL
+- MySQL
 
-RESTful API architecture
+- RESTful API architecture
 
-Token-based authentication
+- Token-based authentication
 
-- System Overview
+## **System Overview**
 
-The platform follows a multi-sided marketplace model connecting:
+- The platform follows a multi-sided marketplace model connecting:
 
-Customers placing orders
+- Customers placing orders
 
-Vendors managing stores and products
+- Vendors managing stores and products
 
-Riders handling deliveries
+- Riders handling deliveries
 
-Admin managing system operations
+- Admin managing system operations
 
-Core domain features include:
+- Core domain features include:
 
-Role-based user system
+- Role-based user system
 
-Store and product management
+- Store and product management
 
-Order processing workflow
+- Order processing workflow
 
-Delivery assignment
+- Delivery assignment
 
-Reviews and favorites
+- Reviews and favorites
 
-Notification system
+- Notification system
 
-- Project Purpose
+## **Project Purpose**
 
 This repository is intended for educational and demonstration purposes only.
 
 All business logic, names, and structures are generic and not associated with any real company or service.
 
-- API Design
+## **API Design**
 
 The API follows RESTful principles with structured resource endpoints and JSON responses.
 
