@@ -14,14 +14,14 @@ return new class extends Migration
     {
         Schema::create('stores', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('vendor_id')->constrained('vendor_profiles')->onDelete('cascade');
+            $table->foreignUuid('vendor_id')->constrained('vendor_profiles')->onDelete('cascade'); // The default foreign key name has already been overwritten using a new migration file to be "vendor_profile_id"
             $table->foreignUuid('business_category_id')->constrained('business_categories')->onDelete('cascade');
             $table->string('name')->unique();
             $table->string('slug')->unique();
             $table->text('description')->nullable();
             $table->string('logo')->nullable();
-            $table->string('cover_image')->nullable();
-            $table->unsignedTinyInteger('status')->default(DefineStatus::default());
+            $table->string('cover_image')->nullable(); // This attribute has already been overwritten using a new migration file to "image"
+            $table->unsignedTinyInteger('status')->default(DefineStatus::default()); // This attribute has already been removed using a new migration file
             $table->timestamps();
         });
     }

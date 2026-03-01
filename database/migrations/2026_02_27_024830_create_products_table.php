@@ -25,7 +25,7 @@ return new class extends Migration
             $table->decimal('sale_price', 10, 2)->nullable();
             $table->unsignedSmallInteger('quantity');
             $table->unsignedSmallInteger('preparation_time')->default(0); // In Minutes
-            $table->unsignedTinyInteger('is_featured')->default(BooleanStatus::default());
+            $table->unsignedTinyInteger('is_featured')->default(BooleanStatus::NO);
             $table->unsignedTinyInteger('status')->default(DefineStatus::INACTIVE);
             $table->unique(['store_id', 'name']);
             $table->unique(['store_id', 'slug']);

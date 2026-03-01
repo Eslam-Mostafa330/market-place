@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('slug')->unique();
             $table->text('description')->nullable();
             $table->string('image')->nullable();
-            $table->unsignedTinyInteger('status')->default(DefineStatus::default());
+            $table->unsignedTinyInteger('status')->default(DefineStatus::default()); // This attribute has already been removed using a new migration file
             $table->timestamps();
         });
     }

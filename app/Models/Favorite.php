@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Favorite extends BaseModel
 {
@@ -11,6 +12,7 @@ class Favorite extends BaseModel
      * @var list<string>
      */
     protected $fillable = [
-        //
+        'customer_id',
+        'product_id',
     ];
 }
