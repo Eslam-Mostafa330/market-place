@@ -1,0 +1,22 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+    'password'               => 'The password is incorrect.',
+    'throttle'               => 'Too many login attempts. Please try again in :seconds seconds.',
+    'auth_success'           => 'Welcome back to your account!',
+    'auth_failed'            => 'Invalid email or password. Please try again',
+    'logged_out'             => 'Logged out successfully. See you again!',
+    'account_inactive'       => 'Your account is currently inactive. Please contact support.',
+    'too_many_requests'      => 'Too many requests. Try again in 10 minutes.',
+    'password_reset_success' => 'Your password has been successfully reset.',
+    'password_reset_failed'  => 'Failed to reset password. Please try again.',
+    'too_recent_request'     => 'You have recently requested a password reset. Please wait before trying again.',
+    'reset_link_sent'        => 'A password reset link has been sent to your email.',
+    'reset_link_invalid'     => 'The password reset link is invalid or has expired.',
+    'email_not_found'        => 'No account found with this email address.',
+    'token_refreshed'        => 'Access token has been refreshed successfully.',
+    'otp_invalid'            => 'The OTP code is invalid or has expired.',
+    'two_factor_required'    => 'Two-factor authentication is required. An OTP code has been sent to your email.',
+];

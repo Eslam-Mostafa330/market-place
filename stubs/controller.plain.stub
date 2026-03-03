@@ -2,10 +2,9 @@
 
 namespace {{ namespace }};
 
-use {{ rootNamespace }}Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Controllers\Api\BaseApiController;
 
-class {{ class }} extends Controller
+class {{ class }} extends BaseApiController
 {
     //
 }
