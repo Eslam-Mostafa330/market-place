@@ -6,15 +6,20 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Services\AuthService;
+use App\Services\TwoFactorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AuthController extends BaseApiController
 {
     public function __construct(
-        private readonly AuthService $authService,
+        private readonly AuthService       $authService,
+        private readonly TwoFactorService  $twoFactorService,
     ) {}
 
+    /**
+     * Handle login attempts, including 2FA checks and OTP sending if required.
+     */
     public function login(LoginRequest $request): JsonResponse
     {
         $credentials = $request->validated();
@@ -25,20 +30,34 @@ class AuthController extends BaseApiController
             return $this->apiResponse([], __('auth.auth_failed'), 401);
         }
 
+        $user = $result['user']->resource;
+
+        if ($this->twoFactorService->isRequired($user, $request)) {
+            return $this->apiResponse(['temp_token' => $this->twoFactorService->sendOtp($user, $request)]);
+        }
+
         return $this->apiResponse($result, __('auth.auth_success'));
     }
 
-    public function logout(Request $request): JsonResponse
-    {
-        $this->authService->logout($request->user());
-
-        return $this->apiResponse([], __('auth.logged_out'));
-    }
-
+    /**
+     * Refresh the access token using the refresh token.
+     * Requires the user to be authenticated and have the appropriate ability.
+     */
     public function refreshToken(Request $request): JsonResponse
     {
         $result = $this->authService->refresh($request->user());
 
         return $this->apiResponse($result, __('auth.token_refreshed'));
+    }
+
+    /**
+    * Logout the user by revoking all their tokens.
+    * Requires the user to be authenticated.
+    */
+    public function logout(Request $request): JsonResponse
+    {
+        $this->authService->logout($request->user());
+
+        return $this->apiResponse([], __('auth.logged_out'));
     }
 }

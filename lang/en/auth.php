@@ -18,5 +18,8 @@ return [
     'email_not_found'        => 'No account found with this email address.',
     'token_refreshed'        => 'Access token has been refreshed successfully.',
     'otp_invalid'            => 'The OTP code is invalid or has expired.',
+    'otp_resent'             => 'A new OTP code has been sent to your email.',
+    'otp_throttle'           => 'An OTP code was recently sent. Please wait before requesting a new one.',
+    'otp_max_attempts'       => 'Maximum OTP verification attempts exceeded. Please request a new code.',
     'two_factor_required'    => 'Two-factor authentication is required. An OTP code has been sent to your email.',
 ];
