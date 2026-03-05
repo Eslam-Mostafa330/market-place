@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Api\BaseApiController;
-use App\Http\Requests\Auth\ResendOtpRequest;
-use App\Http\Requests\Auth\VerifyOtpRequest;
+use App\Http\Requests\Admin\Auth\ResendOtpRequest;
+use App\Http\Requests\Admin\Auth\VerifyOtpRequest;
 use App\Services\AuthService;
 use App\Services\TwoFactorService;
 use Illuminate\Http\JsonResponse;

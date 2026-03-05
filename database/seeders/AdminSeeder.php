@@ -21,7 +21,7 @@ class AdminSeeder extends Seeder
             ['email' => 'admin@example.com'],
             [
                 'name'               => 'Admin',
-                'phone'              => '0123456789',
+                'phone'              => '90123456789',
                 'email_verified_at'  => now(),
                 'role'               => UserRole::ADMIN,
                 'status'             => DefineStatus::ACTIVE,

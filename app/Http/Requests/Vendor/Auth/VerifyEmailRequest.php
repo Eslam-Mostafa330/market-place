@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\Auth;
+namespace App\Http\Requests\Vendor\Auth;
 
 use App\Http\Requests\FormRequest;
 
-class LoginRequest extends FormRequest
+class VerifyEmailRequest extends FormRequest
 {
     /**
      * Get the validation rules that apply to the request.
@@ -14,8 +14,7 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email'    => ['required', 'email'],
-            'password' => ['required', 'string', 'max:100'],
+            'token' => ['required', 'string', 'size:64'],
         ];
     }
 }

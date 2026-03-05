@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\Auth;
+namespace App\Http\Requests\Vendor\Auth;
 
 use App\Http\Requests\FormRequest;
 
-class VerifyOtpRequest extends FormRequest
+class ResendVerificationRequest extends FormRequest
 {
     /**
      * Get the validation rules that apply to the request.
@@ -14,8 +14,7 @@ class VerifyOtpRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'temp_token' => ['required', 'string', 'exists:two_factor_codes,temp_token'],
-            'code'       => ['required', 'string', 'size:6'],
+            'email' => ['required', 'email', 'exists:users,email'],
         ];
     }
 }

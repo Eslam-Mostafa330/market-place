@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Enums\DefineStatus;
+use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -24,11 +26,15 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
+            'name'              => fake()->name(),
+            'email'             => fake()->unique()->safeEmail(),
+            'phone'             => fake()->unique()->numerify('01#########'),
             'email_verified_at' => now(),
-            'password' => static::$password ??= Hash::make('password'),
-            'remember_token' => Str::random(10),
+            'phone_verified_at' => now(),
+            'password'          => static::$password ??= Hash::make('password'),
+            'remember_token'    => Str::random(10),
+            'status'            => $this->faker->randomElement([DefineStatus::ACTIVE, DefineStatus::INACTIVE]),
+            'role'              => UserRole::CUSTOMER,
         ];
     }
 
@@ -39,6 +45,34 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    public function admin(): static
+    {
+        return $this->state(fn () => [
+            'role' => UserRole::ADMIN,
+        ]);
+    }
+
+    public function vendor(): static
+    {
+        return $this->state(fn () => [
+            'role' => UserRole::VENDOR,
+        ]);
+    }
+
+    public function customer(): static
+    {
+        return $this->state(fn () => [
+            'role' => UserRole::CUSTOMER,
+        ]);
+    }
+
+    public function rider(): static
+    {
+        return $this->state(fn () => [
+            'role' => UserRole::RIDER,
         ]);
     }
 }
