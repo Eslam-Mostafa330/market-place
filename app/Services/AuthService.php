@@ -31,6 +31,10 @@ class AuthService
             return null;
         }
 
+        if (! $user->email_verified_at) {
+            throw new HttpException(403, __('auth.email_not_verified'));
+        }
+
         if ($user->status === DefineStatus::INACTIVE) {
             throw new HttpException(403, __('auth.account_inactive'));
         }
