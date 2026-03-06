@@ -2,13 +2,17 @@
 
 namespace App\Models;
 
+use App\Filters\BusinessCategoryFilters;
 use App\Traits\HasSlug;
+use Essa\APIToolKit\Filters\Filterable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BusinessCategory extends BaseModel
 {
-    use HasSlug;
-    
+    use HasSlug, Filterable;
+
+    protected string $default_filters = BusinessCategoryFilters::class;
+
     /**
      * The attributes that are mass assignable.
      *

@@ -179,6 +179,7 @@ return [
     */
 
     'custom' => [
+        'cannot_delete_business_category' => 'Cannot delete category with associated stores.',
         'attribute-name' => [
             'rule-name' => 'custom-message',
         ],
