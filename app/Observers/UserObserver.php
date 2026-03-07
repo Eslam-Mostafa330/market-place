@@ -8,6 +8,10 @@ use App\Models\User;
 
 class UserObserver
 {
+    /**
+     * Handle the User "creating" event.
+     * This method automatically sets email_verified_at, phone_verified_at, and status to active for admin users when they are created.
+     */
     public function creating(User $user): void
     {
         match ($user->role) {
@@ -31,12 +35,19 @@ class UserObserver
 
     /**
      * Handle the User "updated" event.
-     * This method checks if the user's status has changed to inactive and if so, it deletes all of the user's access tokens to prevent further access.
+     * This method automatically deletes API tokens when an admin user is deactivated, and resets email verification when an admin's email is changed.
      */
     public function updated(User $user): void
     {
         if ($user->wasChanged('status') && $user->status === DefineStatus::INACTIVE) {
             $user->tokens()->delete();
+        }
+
+        if ($user->wasChanged('email')) {
+            match ($user->role) {
+                UserRole::ADMIN  => $user->updateQuietly(['email_verified_at' => now()]),
+                default => null,
+            };
         }
     }
 

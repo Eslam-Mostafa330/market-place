@@ -3,8 +3,16 @@
 use App\Http\Controllers\Api\V1\Admin\AdminController;
 use App\Http\Controllers\Api\V1\Admin\BusinessCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ProductCategoryController;
+use App\Http\Controllers\Api\V1\Admin\ProfileController;
 use Illuminate\Support\Facades\Route;
 
+
+# ----- Profile Routes
+Route::controller(ProfileController::class)->prefix('profile')->group(function () {
+    Route::get('/', 'showProfile');
+    Route::get('/summary', 'profileSummary');
+    Route::post('/update', 'updateProfile');
+});
 
 # ----- Admin CRUD Routes
 Route::apiResource('admins', AdminController::class)->except('show');

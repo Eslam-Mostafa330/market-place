@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Requests\Admin\AdminUser;
+namespace App\Http\Requests\Admin\Profile;
 
 use App\Http\Requests\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
-class UpdateAdminRequest extends FormRequest
+class UpdateAdminProfileRequest extends FormRequest
 {
     /**
      * Get the validation rules that apply to the request.
@@ -15,13 +15,13 @@ class UpdateAdminRequest extends FormRequest
      */
     public function rules(): array
     {
-        $admin = $this->route('admin');
+        $user = $this->user();
 
         return [
-            'name'     => ['required', 'string', 'max:100'],
-            'email'    => ['required', 'max:255', Rule::unique('users', 'email')->ignore($admin), Rule::email()->strict()->preventSpoofing()],
-            'phone'    => ['sometimes', 'nullable', 'string', 'regex:/^[0-9\s\-\+\(\)]+$/', 'max:30', Rule::unique('users', 'phone')->ignore($admin)],
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'max:150', Rule::email()->strict()->preventSpoofing(), Rule::unique('users')->ignore($user->id)],
             'password' => ['sometimes', 'nullable', 'confirmed', 'max:100', Password::defaults()],
+            'phone'    => ['sometimes', 'nullable', 'string', 'regex:/^[0-9\s\-\+\(\)]+$/', 'max:30', Rule::unique('users')->ignore($user->id)],
         ];
     }
 

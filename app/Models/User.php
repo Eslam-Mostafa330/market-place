@@ -36,6 +36,8 @@ class User extends BaseAuthenticatableModel
         'phone',
         'role',
         'status',
+        'email_verified_at',
+        'phone_verified_at',
     ];
 
     /**
