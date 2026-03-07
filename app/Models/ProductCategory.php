@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use App\Traits\HasSlug;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProductCategory extends BaseModel
 {
-    use HasSlug;
+    use HasSlug, HasFactory;
 
     /**
      * The attributes that are mass assignable.

@@ -51,10 +51,7 @@ class BusinessCategoryController extends BaseApiController
 
     public function destroy(BusinessCategory $businessCategory): JsonResponse
     {
-        if ($businessCategory->stores()->exists()) {
-            return $this->apiResponse([], __('validation.custom.cannot_delete_business_category'), 422);
-        }
-
+        abort_if($businessCategory->stores()->exists(), 422, __('validation.custom.cannot_delete_business_category'));
         $businessCategory->image ? MediaHandler::deleteMedia($businessCategory->image) : null;
         $businessCategory->delete();
         return $this->apiResponseDeleted();
