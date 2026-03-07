@@ -182,6 +182,8 @@ return [
         'cannot_delete_business_category'      => 'Cannot delete category with associated stores.',
         'cannot_delete_product_category'       => 'Cannot delete category with associated products. Please delete or reassign its products first.',
         'cannot_delete_category_subcategories' => 'Cannot delete category with subcategories. Please delete or reassign its subcategories first.',
+        'action_denied'                        => 'You cannot perform this action on your own account.',
+        'verify_admins'                        => 'The specified user is not an admin.',
         'attribute-name' => [
             'rule-name' => 'custom-message',
         ],

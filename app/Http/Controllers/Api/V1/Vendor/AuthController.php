@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1\Vendor;
 
-use App\Enums\DefineStatus;
 use App\Enums\UserRole;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Vendor\Auth\LoginRequest;
@@ -28,7 +27,6 @@ class AuthController extends BaseApiController
     {
         $vendorData = $request->validated();
         $vendorData['role'] = UserRole::VENDOR;
-        $vendorData['status'] = DefineStatus::INACTIVE;
         $vendor = User::create($vendorData);
         $this->verificationService->sendVerificationEmail($vendor, $request->ip());
 

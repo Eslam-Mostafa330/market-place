@@ -6,6 +6,8 @@ namespace App\Models;
 
 use App\Enums\DefineStatus;
 use App\Enums\UserRole;
+use App\Filters\UserFilters;
+use Essa\APIToolKit\Filters\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -18,7 +20,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class User extends BaseAuthenticatableModel
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasFactory, Notifiable, HasApiTokens, Filterable;
+
+    protected string $default_filters = UserFilters::class;
 
     /**
      * The attributes that are mass assignable.
@@ -160,5 +164,24 @@ class User extends BaseAuthenticatableModel
     protected function rider(Builder $query): void
     {
         $query->where('role', UserRole::RIDER->value);
+    }
+
+    /****************************/
+    /**** Role Check Methods ****/
+    /****************************/
+    /**
+     * Ensure the user is vendor
+     */
+    public function isVendor(): bool
+    {
+        return $this->role === UserRole::VENDOR;
+    }
+
+    /**
+     * Ensure the user is admin
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === UserRole::ADMIN;
     }
 }
