@@ -15,10 +15,7 @@ use Illuminate\Http\Request;
 
 class AuthController extends BaseApiController
 {
-    public function __construct(
-        private readonly AuthService              $authService,
-        private readonly EmailVerificationService $verificationService,
-    ) {}
+    public function __construct(private readonly AuthService $authService) {}
 
     /**
      * Handle vendor registration.
@@ -28,7 +25,6 @@ class AuthController extends BaseApiController
         $vendorData = $request->validated();
         $vendorData['role'] = UserRole::VENDOR;
         $vendor = User::create($vendorData);
-        $this->verificationService->sendVerificationEmail($vendor, $request->ip());
 
         return $this->apiResponseStored(new RegisterResource($vendor));
     }

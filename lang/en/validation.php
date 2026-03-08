@@ -184,6 +184,7 @@ return [
         'cannot_delete_category_subcategories' => 'Cannot delete category with subcategories. Please delete or reassign its subcategories first.',
         'action_denied'                        => 'You cannot perform this action on your own account.',
         'verify_admins'                        => 'The specified user is not an admin.',
+        'verify_vendors'                       => 'The specified user is not a vendor.',
         'attribute-name' => [
             'rule-name' => 'custom-message',
         ],

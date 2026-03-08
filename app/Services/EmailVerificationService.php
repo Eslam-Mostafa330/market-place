@@ -6,9 +6,10 @@ use App\Mail\EmailVerificationMail;
 use App\Models\User;
 use App\Models\EmailVerification;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+
 
 class EmailVerificationService
 {
@@ -37,15 +38,17 @@ class EmailVerificationService
      */
     public function sendVerificationEmail(User $user, ?string $ipAddress = null): bool
     {
+        $this->ensureNotRateLimited($user->email, $ipAddress);
+
         if ($this->hasRecentToken($user->email)) {
             throw new HttpException(429, __('auth.too_recent_request'));
         }
 
-        if (! $this->canSendVerification($user->email, $ipAddress)) {
-            return false;
-        }
+        RateLimiter::hit($this->emailKey($user->email), self::ATTEMPT_WINDOW_MINUTES * 60);
 
-        $this->trackAttempt($user->email, $ipAddress);
+        if ($ipAddress) {
+            RateLimiter::hit($this->ipKey($ipAddress), self::ATTEMPT_WINDOW_MINUTES * 60);
+        }
 
         $token     = $this->createToken($user->email);
         $verifyUrl = $this->buildVerifyUrl($token);
@@ -81,47 +84,24 @@ class EmailVerificationService
     }
 
     /**
-     * Determine if a verification email can be sent for the given email and IP address.
-     *
-     * Enforces the configured rate limits per email and per IP.
+     * Ensure the request is not rate limited by email or IP address.
      *
      * @param string      $email      The email being checked
      * @param string|null $ipAddress  The requester's IP address (optional)
      *
-     * @return bool  True if sending is allowed, false if blocked
-     */
-    private function canSendVerification(string $email, ?string $ipAddress): bool
-    {
-        if (Cache::get($this->emailKey($email), 0) >= self::MAX_ATTEMPTS_PER_EMAIL) {
-            return false;
-        }
-
-        if ($ipAddress && Cache::get($this->ipKey($ipAddress), 0) >= self::MAX_ATTEMPTS_PER_IP) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Record a verification attempt for rate-limiting purposes.
-     *
-     * Tracks attempts by both email and IP address using atomic increments
-     * to avoid race conditions under concurrent requests.
-     *
-     * @param string      $email      The email for which the attempt is made
-     * @param string|null $ipAddress  The requester's IP address (optional)
-     *
      * @return void
+     *
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException  If either rate limit is exceeded
      */
-    private function trackAttempt(string $email, ?string $ipAddress): void
+    private function ensureNotRateLimited(string $email, ?string $ipAddress): void
     {
-        Cache::add($this->emailKey($email), 0, now()->addMinutes(self::ATTEMPT_WINDOW_MINUTES));
-        Cache::increment($this->emailKey($email));
+        if (RateLimiter::tooManyAttempts($this->emailKey($email), self::MAX_ATTEMPTS_PER_EMAIL)) {
+            $minutes = ceil(RateLimiter::availableIn($this->emailKey($email)) / 60);
+            throw new HttpException(429, __('auth.too_many_attempts', ['minutes' => $minutes]));
+        }
 
-        if ($ipAddress) {
-            Cache::add($this->ipKey($ipAddress), 0, now()->addMinutes(self::ATTEMPT_WINDOW_MINUTES));
-            Cache::increment($this->ipKey($ipAddress));
+        if ($ipAddress && RateLimiter::tooManyAttempts($this->ipKey($ipAddress), self::MAX_ATTEMPTS_PER_IP)) {
+            throw new HttpException(429, __('auth.too_many_attempts_ip'));
         }
     }
 

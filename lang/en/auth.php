@@ -27,4 +27,6 @@ return [
     'email_not_verified'       => 'Your email address has not been verified. Please check your inbox for the verification email.',
     'email_already_verified'   => 'This email address has already been verified.',
     'verification_sent'        => 'A new verification email has been sent to your email address.',
+    'too_many_attempts'        => 'Too many attempts. Please try again in later.',
+    'too_many_attempts_ip'     => 'Too many attempts from this IP address. Please try again later.',
 ];
