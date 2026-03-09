@@ -186,4 +186,12 @@ class User extends BaseAuthenticatableModel
     {
         return $this->role === UserRole::ADMIN;
     }
+
+    /**
+     * Ensure the user is customer
+     */
+    public function isCustomer(): bool
+    {
+        return $this->role === UserRole::CUSTOMER;
+    }
 }

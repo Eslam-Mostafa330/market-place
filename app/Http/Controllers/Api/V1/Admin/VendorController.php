@@ -38,7 +38,6 @@ class VendorController extends BaseApiController
     {
         abort_unless($vendor->isVendor(), 422, __('validation.custom.verify_vendors'));
         $data = $request->validated();
-        $data['email_verified_at'] = null;
         $vendor->update($data);
         return $this->apiResponseUpdated(new VendorUserResource($vendor));
     }

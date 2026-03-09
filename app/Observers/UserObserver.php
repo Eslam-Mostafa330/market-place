@@ -9,82 +9,62 @@ use App\Services\EmailVerificationService;
 
 class UserObserver
 {
+    public function __construct(private EmailVerificationService $emailVerificationService) {}
+
     /**
      * Handle the User "creating" event.
-     * This method automatically sets email_verified_at, phone_verified_at, and status to active for admin users when they are created. and sets status to active for vendor users.
+     * Set default attributes before inserting into the database.
      */
     public function creating(User $user): void
     {
         match ($user->role) {
-            UserRole::ADMIN  => $this->setAdminDefaults($user),
-            UserRole::VENDOR => $this->setVendorDefaults($user),
-            default          => null,
+            UserRole::ADMIN => $this->setAdminDefaults($user),
+            default         => $this->setDefaultUserStatus($user),
         };
     }
 
     /**
      * Handle the User "created" event.
+     * Send verification emails after the user exists in the database.
      */
     public function created(User $user): void
     {
-        //
+        if (in_array($user->role, [UserRole::VENDOR, UserRole::CUSTOMER])) {
+            $this->emailVerificationService->sendVerificationEmail($user, request()->ip());
+        }
+    }
+
+    /**
+     * Handle the User "updating" event.
+     * Update verification state before the database update happens.
+     */
+    public function updating(User $user): void
+    {
+        if (! $user->isDirty('email')) {
+            return;
+        }
+
+        $user->email_verified_at = match ($user->role) {
+            UserRole::ADMIN => now(),
+            default         => null,
+        };
     }
 
     /**
      * Handle the User "updated" event.
-     * This method automatically deletes API tokens when an admin user is deactivated, and resets email verification when an admin's email is changed.
+     * Trigger side effects after update is completed.
      */
     public function updated(User $user): void
     {
         $this->handleStatusChange($user);
-        $this->handleEmailChange($user);
+
+        if ($user->wasChanged('email')) {
+            $this->handleEmailChange($user);
+        }
     }
 
     /**
-     * Handle the User "deleted" event.
-     */
-    public function deleted(User $user): void
-    {
-        //
-    }
-
-    /**
-     * Handle the User "restored" event.
-     */
-    public function restored(User $user): void
-    {
-        //
-    }
-
-    /**
-     * Handle the User "force deleted" event.
-     */
-    public function forceDeleted(User $user): void
-    {
-        //
-    }
-
-    /**
-     * Auto-verify and activate admin accounts upon creation.
-     */
-    private function setAdminDefaults(User $user): void
-    {
-        $user->email_verified_at = now();
-        $user->phone_verified_at = now();
-        $user->status            = DefineStatus::ACTIVE;
-    }
-
-    /**
-     * Set vendor account as active upon creation.
-     */
-    private function setVendorDefaults(User $user): void
-    {
-        $user->status = DefineStatus::ACTIVE;
-        app(EmailVerificationService::class)->sendVerificationEmail($user, request()->ip());
-    }
-
-    /**
-     * Revoke all tokens when a user's status is set to inactive.
+     * Revoke all tokens when a user becomes inactive.
      */
     private function handleStatusChange(User $user): void
     {
@@ -94,18 +74,32 @@ class UserObserver
     }
 
     /**
-     * Re-verify admin email instantly or notify vendor to re-verify on email change.
+     * Send verification email when vendor/customer email changes.
      */
     private function handleEmailChange(User $user): void
     {
-        if (! $user->wasChanged('email')) {
+        if (! in_array($user->role, [UserRole::VENDOR, UserRole::CUSTOMER])) {
             return;
         }
 
-        match ($user->role) {
-            UserRole::ADMIN  => $user->updateQuietly(['email_verified_at' => now()]),
-            UserRole::VENDOR => app(EmailVerificationService::class)->sendVerificationEmail($user, request()->ip()),
-            default          => null,
-        };
+        $this->emailVerificationService->sendVerificationEmail($user, request()->ip());
+    }
+
+    /**
+     * Auto verify and activate admin accounts.
+     */
+    private function setAdminDefaults(User $user): void
+    {
+        $user->email_verified_at = now();
+        $user->phone_verified_at = now();
+        $user->status            = DefineStatus::ACTIVE;
+    }
+
+    /**
+     * Set default status for non-admin users.
+     */
+    private function setDefaultUserStatus(User $user): void
+    {
+        $user->status = DefineStatus::ACTIVE;
     }
 }

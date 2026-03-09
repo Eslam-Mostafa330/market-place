@@ -24,7 +24,7 @@ class AdminController extends BaseApiController
             ->admin()
             ->useFilters()
             ->latest()
-            ->get();
+            ->dynamicPaginate();
 
         return AdminUserResource::collection($admins);
     }

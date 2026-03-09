@@ -185,6 +185,7 @@ return [
         'action_denied'                        => 'You cannot perform this action on your own account.',
         'verify_admins'                        => 'The specified user is not an admin.',
         'verify_vendors'                       => 'The specified user is not a vendor.',
+        'verify_customers'                     => 'The specified user is not a customer.',
         'attribute-name' => [
             'rule-name' => 'custom-message',
         ],

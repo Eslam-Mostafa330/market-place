@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\AdminController;
 use App\Http\Controllers\Api\V1\Admin\BusinessCategoryController;
+use App\Http\Controllers\Api\V1\Admin\CustomerController;
 use App\Http\Controllers\Api\V1\Admin\ProductCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ProfileController;
 use App\Http\Controllers\Api\V1\Admin\VendorController;
@@ -22,6 +23,10 @@ Route::patch('admins/{admin}/toggle-status', [AdminController::class, 'toggleSta
 # ----- Vendor CRUD Routes
 Route::apiResource('vendors', VendorController::class)->except('show');
 Route::patch('vendors/{vendor}/toggle-status', [VendorController::class, 'toggleStatus']);
+
+# ----- Customer CRUD Routes
+Route::apiResource('customers', CustomerController::class)->except('show');
+Route::patch('customers/{customer}/toggle-status', [CustomerController::class, 'toggleStatus']);
 
 # ----- Business Category Routes
 Route::apiResource('business-categories', BusinessCategoryController::class)->except('show');
