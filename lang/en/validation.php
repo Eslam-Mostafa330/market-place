@@ -186,6 +186,7 @@ return [
         'verify_admins'                        => 'The specified user is not an admin.',
         'verify_vendors'                       => 'The specified user is not a vendor.',
         'verify_customers'                     => 'The specified user is not a customer.',
+        'verify_riders'                        => 'The specified user is not a rider.',
         'attribute-name' => [
             'rule-name' => 'custom-message',
         ],

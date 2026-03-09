@@ -29,7 +29,7 @@ class UserObserver
      */
     public function created(User $user): void
     {
-        if (in_array($user->role, [UserRole::VENDOR, UserRole::CUSTOMER])) {
+        if (in_array($user->role, [UserRole::VENDOR, UserRole::CUSTOMER, UserRole::RIDER])) {
             $this->emailVerificationService->sendVerificationEmail($user, request()->ip());
         }
     }
@@ -78,7 +78,7 @@ class UserObserver
      */
     private function handleEmailChange(User $user): void
     {
-        if (! in_array($user->role, [UserRole::VENDOR, UserRole::CUSTOMER])) {
+        if (! in_array($user->role, [UserRole::VENDOR, UserRole::CUSTOMER, UserRole::RIDER])) {
             return;
         }
 

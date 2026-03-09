@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\Admin\BusinessCategoryController;
 use App\Http\Controllers\Api\V1\Admin\CustomerController;
 use App\Http\Controllers\Api\V1\Admin\ProductCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ProfileController;
+use App\Http\Controllers\Api\V1\Admin\RiderController;
 use App\Http\Controllers\Api\V1\Admin\VendorController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +28,10 @@ Route::patch('vendors/{vendor}/toggle-status', [VendorController::class, 'toggle
 # ----- Customer CRUD Routes
 Route::apiResource('customers', CustomerController::class)->except('show');
 Route::patch('customers/{customer}/toggle-status', [CustomerController::class, 'toggleStatus']);
+
+# ----- Rider CRUD Routes
+Route::apiResource('riders', RiderController::class)->except('show');
+Route::patch('riders/{rider}/toggle-status', [RiderController::class, 'toggleStatus']);
 
 # ----- Business Category Routes
 Route::apiResource('business-categories', BusinessCategoryController::class)->except('show');

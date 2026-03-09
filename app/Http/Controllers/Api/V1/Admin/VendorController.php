@@ -20,7 +20,7 @@ class VendorController extends BaseApiController
         $vendors = User::select('id', 'name', 'email', 'phone', 'status')
             ->vendor()
             ->useFilters()
-            ->orderBy('status', 'ASC')
+            ->latest()
             ->dynamicPaginate();
 
         return VendorUserResource::collection($vendors);

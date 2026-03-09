@@ -20,7 +20,7 @@ class CustomerController extends BaseApiController
         $customers = User::select('id', 'name', 'email', 'phone', 'status')
             ->customer()
             ->useFilters()
-            ->orderBy('status', 'ASC')
+            ->latest()
             ->dynamicPaginate();
 
         return CustomerUserResource::collection($customers);

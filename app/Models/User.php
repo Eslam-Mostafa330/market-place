@@ -194,4 +194,12 @@ class User extends BaseAuthenticatableModel
     {
         return $this->role === UserRole::CUSTOMER;
     }
+
+    /**
+     * Ensure the user is rider
+     */
+    public function isRider(): bool
+    {
+        return $this->role === UserRole::RIDER;
+    }
 }
