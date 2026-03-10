@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\DefineStatus;
 use App\Enums\UserRole;
+use App\Enums\VendorVerificationStatus;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Admin\VendorUser\CreateVendorRequest;
 use App\Http\Requests\Admin\VendorUser\UpdateVendorRequest;
@@ -17,10 +18,12 @@ class VendorController extends BaseApiController
 {
     public function index(): AnonymousResourceCollection
     {
-        $vendors = User::select('id', 'name', 'email', 'phone', 'status')
+        $vendors = User::select('users.id', 'users.name', 'users.email', 'users.phone', 'users.status', 'vendor_profiles.verification_status')
             ->vendor()
+            ->leftJoin('vendor_profiles', 'vendor_profiles.user_id', '=', 'users.id')
+            ->orderByRaw('verification_status = ? DESC', [VendorVerificationStatus::PENDING->value])
             ->useFilters()
-            ->latest()
+            ->latest('users.created_at')
             ->dynamicPaginate();
 
         return VendorUserResource::collection($vendors);

@@ -24,7 +24,7 @@ return [
     'two_factor_required'      => 'Two-factor authentication is required. An OTP code has been sent to your email.',
     'invalid_or_expired_token' => 'The verification token is invalid or has expired.',
     'email_verified'           => 'Your email has been successfully verified.',
-    'email_not_verified'       => 'Your email address has not been verified. Please check your inbox for the verification email.',
+    'email_not_verified'       => 'Your email address has not been verified. Please check your inbox for the verification email or request a new one.',
     'email_already_verified'   => 'This email address has already been verified.',
     'verification_sent'        => 'A new verification email has been sent to your email address.',
     'too_many_attempts'        => 'Too many attempts. Please try again in later.',

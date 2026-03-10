@@ -17,7 +17,7 @@ class ProfileController extends BaseApiController
 
     public function __construct(private readonly AuthService $authService) {}
 
-    public function showProfile(): JsonResponse
+    public function show(): JsonResponse
     {
         $admin = auth()->user();
         return $this->apiResponseShow(new ProfileResource($admin));
@@ -26,7 +26,7 @@ class ProfileController extends BaseApiController
     /**
      * Get a summary of the admin's profile for dashboard navbar/sidebar display
      */
-    public function profileSummary(): JsonResponse
+    public function showProfileSummary(): JsonResponse
     {
         $userId = auth()->id();
     
@@ -40,14 +40,13 @@ class ProfileController extends BaseApiController
         return $this->apiResponseShow($admin);
     }
 
-    public function updateProfile(UpdateAdminProfileRequest $request): JsonResponse
+    public function update(UpdateAdminProfileRequest $request): JsonResponse
     {
         $admin = auth()->user();
         $data = $request->validated();
         $this->authService->logoutOtherDevicesOnPasswordChange($admin, $data, $request);
         $admin->update($data);
         $this->clearAdminSummaryCache($admin->id);
-
         return $this->apiResponseUpdated(new ProfileResource($admin));
     }
 }

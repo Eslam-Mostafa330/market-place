@@ -10,4 +10,9 @@ trait ClearsCache
     {
         Cache::forget("admin_summary_{$adminId}");
     }
+
+    public function clearVendorSummaryCache($vendorId)
+    {
+        Cache::forget("vendor_summary_{$vendorId}");
+    }
 }

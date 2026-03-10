@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin\VendorUser;
 
+use App\Enums\VendorVerificationStatus;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -15,11 +16,12 @@ class VendorUserResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'     => $this->id,
-            'name'   => $this->name,
-            'email'  => $this->email,
-            'phone'  => $this->phone,
-            'status' => $this->status,
+            'id'                  => $this->id,
+            'name'                => $this->name,
+            'email'               => $this->email,
+            'phone'               => $this->phone,
+            'active_status'       => $this->status,
+            'verification_status' => $this->verification_status ?? VendorVerificationStatus::INCOMPLETE->value,
         ];
     }
 }

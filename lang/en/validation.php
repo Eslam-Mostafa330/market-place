@@ -187,6 +187,9 @@ return [
         'verify_vendors'                       => 'The specified user is not a vendor.',
         'verify_customers'                     => 'The specified user is not a customer.',
         'verify_riders'                        => 'The specified user is not a rider.',
+        'verification_status_invalid'          => 'Verification status must be either verified or rejected.',
+        'rejection_reason_required'            => 'A rejection reason is required when the verification status is rejected.',
+        'rejection_reason_prohibited'          => 'Rejection reason cannot be provided when verification status is verified.',
         'attribute-name' => [
             'rule-name' => 'custom-message',
         ],
