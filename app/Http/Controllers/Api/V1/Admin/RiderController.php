@@ -12,6 +12,8 @@ use App\Http\Resources\Admin\RiderUser\ToggleRiderStatusResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 
 class RiderController extends BaseApiController
 {
@@ -26,11 +28,23 @@ class RiderController extends BaseApiController
         return RiderUserResource::collection($riders);
     }
 
+    public function show(User $rider): JsonResponse
+    {
+        $rider->load('riderProfile:id,user_id,license_number,license_expiry,vehicle_type,vehicle_number,total_deliveries');
+        return $this->apiResponse(new RiderUserResource($rider));
+    }
+
     public function store(CreateRiderRequest $request): JsonResponse
     {
         $data = $request->validated();
-        $data['role'] = UserRole::RIDER;
-        $user = User::create($data);
+
+        $user = DB::transaction(function () use ($data) {
+            $user    = User::create($this->getUserData($data));
+            $profile = $user->riderProfile()->create($this->getProfileData($data));
+
+            return $user->setRelation('riderProfile', $profile);
+        });
+
         return $this->apiResponseStored(new RiderUserResource($user));
     }
 
@@ -38,7 +52,18 @@ class RiderController extends BaseApiController
     {
         abort_unless($rider->isRider(), 422, __('validation.custom.verify_riders'));
         $data = $request->validated();
-        $rider->update($data);
+
+        $rider = DB::transaction(function () use ($data, $rider) {
+            $rider->update($this->getUserData($data));
+
+            $profile = $rider->riderProfile()->updateOrCreate(
+                [],
+                $this->getProfileData($data)
+            );
+
+            return $rider->setRelation('riderProfile', $profile);
+        });
+
         return $this->apiResponseUpdated(new RiderUserResource($rider));
     }
 
@@ -62,5 +87,24 @@ class RiderController extends BaseApiController
 
         $rider->update(['status' => $newStatus]);
         return $this->apiResponseUpdated(new ToggleRiderStatusResource($rider));
+    }
+
+    /**
+     * Extract and prepare user data for creating or updating a rider.
+     */
+    private function getUserData(array $data): array
+    {
+        return [
+            ...Arr::only($data, ['name', 'email', 'phone', 'password']),
+            'role' => UserRole::RIDER,
+        ];
+    }
+
+    /**
+     * Extract and prepare rider profile data for creating or updating a rider profile.
+     */
+    private function getProfileData(array $data): array
+    {
+        return Arr::only($data, ['license_number', 'license_expiry', 'vehicle_type', 'vehicle_number']);
     }
 }

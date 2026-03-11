@@ -16,10 +16,14 @@ class CreateRiderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'     => ['required', 'string', 'max:100'],
-            'email'    => ['required', 'max:255', 'unique:users,email', Rule::email()->strict()->preventSpoofing()],
-            'phone'    => ['required', 'string', 'unique:users,phone', 'regex:/^[0-9\s\-\+\(\)]+$/', 'max:30'],
-            'password' => ['required', 'confirmed', 'max:100', Password::defaults()],
+            'name'           => ['required', 'string', 'max:100'],
+            'email'          => ['required', 'max:255', 'unique:users,email', Rule::email()->strict()->preventSpoofing()],
+            'phone'          => ['required', 'string', 'unique:users,phone', 'regex:/^[0-9\s\-\+\(\)]+$/', 'max:30'],
+            'password'       => ['required', 'confirmed', 'max:100', Password::defaults()],
+            'license_number' => ['required', 'string', 'max:100', 'unique:rider_profiles,license_number'],
+            'license_expiry' => ['required', 'date', 'after_or_equal:today'],
+            'vehicle_type'   => ['required', 'string', 'max:100'],
+            'vehicle_number' => ['required', 'string', 'max:100', 'unique:rider_profiles,vehicle_number'],
         ];
     }
 }

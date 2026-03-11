@@ -20,6 +20,7 @@ class RiderUserResource extends JsonResource
             'email'         => $this->email,
             'phone'         => $this->phone,
             'active_status' => $this->status,
+            'profile'       => new RiderProfileResource($this->whenLoaded('riderProfile')),
         ];
     }
 }

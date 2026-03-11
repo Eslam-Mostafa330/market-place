@@ -35,7 +35,7 @@ Route::apiResource('customers', CustomerController::class)->except('show');
 Route::patch('customers/{customer}/toggle-status', [CustomerController::class, 'toggleStatus']);
 
 # ----- Rider Routes
-Route::apiResource('riders', RiderController::class)->except('show');
+Route::apiResource('riders', RiderController::class);
 Route::patch('riders/{rider}/toggle-status', [RiderController::class, 'toggleStatus']);
 
 # ----- Business Category Routes

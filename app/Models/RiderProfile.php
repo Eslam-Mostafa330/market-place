@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Enums\BooleanStatus;
+use App\Enums\RiderAvailability;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -27,6 +27,16 @@ class RiderProfile extends BaseModel
     ];
 
     /**
+     * The attributes that should be defaulted when creating a new model instance.
+     *
+     * @var list<string>
+     */
+    protected $attributes = [
+        'rider_availability' => RiderAvailability::UNAVAILABLE->value,
+        'total_deliveries'   => 0,
+    ];
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -34,7 +44,7 @@ class RiderProfile extends BaseModel
     protected function casts(): array
     {
         return [
-            'rider_availability' => BooleanStatus::class,
+            'rider_availability' => RiderAvailability::class,
             'current_longitude'  => 'decimal:8',
             'current_latitude'   => 'decimal:8',
             'license_expiry'     => 'date',
@@ -58,6 +68,6 @@ class RiderProfile extends BaseModel
     #[Scope]
     protected function available(Builder $query): void
     {
-        $query->where('rider_availability', BooleanStatus::YES->value);
+        $query->where('rider_availability', RiderAvailability::AVAILABLE->value);
     }
 }

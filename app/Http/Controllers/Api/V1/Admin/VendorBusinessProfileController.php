@@ -13,9 +13,9 @@ class VendorBusinessProfileController extends BaseApiController
 {
     public function show(User $vendor): JsonResponse
     {
-        $vendorProfile = $vendor->vendorProfile;
-        $vendorProfile->setRelation('user', $vendor);
-        return $this->apiResponseShow(new BusinessProfileResource($vendorProfile));
+        abort_unless($vendor->vendorProfile, 404);
+        $vendor->vendorProfile->setRelation('user', $vendor);
+        return $this->apiResponseShow(new BusinessProfileResource($vendor->vendorProfile));
     }
 
     /**
