@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 return [
+    'identifier_field'         => 'email or phone number',
     'password'                 => 'The password is incorrect.',
     'throttle'                 => 'Too many login attempts. Please try again in :seconds seconds.',
     'auth_success'             => 'Welcome back to your account!',

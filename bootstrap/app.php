@@ -2,6 +2,7 @@
 
 use App\Exceptions\Handler;
 use App\Http\Middleware\EnsureAdminMiddleware;
+use App\Http\Middleware\EnsureRiderMiddleware;
 use App\Http\Middleware\EnsureVendorMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -31,12 +32,21 @@ return Application::configure(basePath: dirname(__DIR__))
             Route::prefix('api/v1/vendor')->middleware(['api', 'auth:sanctum', 'isVendor'])
                 ->as('vendor.')
                 ->group(base_path('routes/api/v1/vendor/vendor.php'));
+
+            Route::prefix('api/v1/rider/auth')->middleware(['api'])
+                ->as('rider.auth.')
+                ->group(base_path('routes/api/v1/rider/auth.php'));
+
+            Route::prefix('api/v1/rider')->middleware(['api', 'auth:sanctum', 'isRider'])
+                ->as('rider.')
+                ->group(base_path('routes/api/v1/rider/rider.php'));
         }
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'isAdmin'  => EnsureAdminMiddleware::class,
             'isVendor' => EnsureVendorMiddleware::class,
+            'isRider'  => EnsureRiderMiddleware::class,
             'ability'  => CheckForAnyAbility::class,
         ]);
     })

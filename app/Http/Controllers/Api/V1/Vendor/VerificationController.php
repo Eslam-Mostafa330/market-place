@@ -9,7 +9,7 @@ use App\Models\User;
 use App\Services\EmailVerificationService;
 use Illuminate\Http\JsonResponse;
 
-class EmailVerificationController extends BaseApiController
+class VerificationController extends BaseApiController
 {
     public function __construct(private readonly EmailVerificationService $verificationService) {}
 
@@ -21,11 +21,9 @@ class EmailVerificationController extends BaseApiController
     {
         $verified = $this->verificationService->verifyEmail($request->token);
 
-        if (! $verified) {
-            return $this->apiResponse(__('auth.invalid_or_expired_token'), 422);
-        }
-
-        return $this->apiResponse(__('auth.email_verified'));
+        return $verified
+            ? $this->apiResponse(__('auth.email_verified'))
+            : $this->apiResponse(__('auth.invalid_or_expired_token'), 422);
     }
 
     /**

@@ -8,12 +8,12 @@ use Illuminate\Support\Facades\Route;
 # ----- Auth Routes
 Route::controller(AuthController::class)->group(function () {
     Route::post('/login', 'login');
-    Route::post('/refresh-token', 'refreshToken')->middleware(['auth:sanctum', 'ability:'.TokenAbility::ISSUE_ACCESS_TOKEN->value]);
+    Route::post('/refresh', 'refreshToken')->middleware(['auth:sanctum', 'ability:'.TokenAbility::ISSUE_ACCESS_TOKEN->value]);
     Route::post('/logout', 'logout')->middleware('auth:sanctum');
 });
 
 # ----- Two-Factor Routes
-Route::controller(TwoFactorController::class)->group(function () {
-    Route::post('/verify-otp', 'verifyOtp');
-    Route::post('/resend-otp', 'resendOtp');
+Route::controller(TwoFactorController::class)->prefix('otp')->group(function () {
+    Route::post('/verify', 'verifyOtp');
+    Route::post('/resend', 'resendOtp');
 });

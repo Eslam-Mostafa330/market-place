@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Resources\Admin\Profile;
+namespace App\Http\Resources\Rider\Profile;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;

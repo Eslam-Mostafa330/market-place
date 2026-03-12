@@ -1,13 +1,10 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1\Vendor;
+namespace App\Http\Controllers\Api\V1\Rider;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Api\BaseApiController;
-use App\Http\Requests\Vendor\Auth\LoginRequest;
-use App\Http\Requests\Vendor\Auth\RegisterRequest;
-use App\Http\Resources\Vendor\Auth\RegisterResource;
-use App\Models\User;
+use App\Http\Requests\Rider\Auth\LoginRequest;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,32 +14,25 @@ class AuthController extends BaseApiController
     public function __construct(private readonly AuthService $authService) {}
 
     /**
-     * Handle vendor registration.
-     */
-    public function register(RegisterRequest $request): JsonResponse
-    {
-        $vendorData = $request->validated();
-        $vendorData['role'] = UserRole::VENDOR;
-        $vendor = User::create($vendorData);
-
-        return $this->apiResponseStored(new RegisterResource($vendor));
-    }
-
-    /**
      * Handle login attempts.
      */
     public function login(LoginRequest $request): JsonResponse
     {
-        $credentials = $request->validated();
+        $field = filter_var($request->identifier, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
 
-        $result = $this->authService->attemptLogin($credentials, UserRole::VENDOR);
+        $credentials = [
+            $field     => $request->identifier,
+            'password' => $request->password,
+        ];
+
+        $result = $this->authService->attemptLogin($credentials, UserRole::RIDER);
 
         return $result
             ? $this->apiResponse($result, __('auth.auth_success'))
             : $this->apiResponse([], __('auth.auth_failed'), 401);
     }
 
-    /**
+        /**
      * Refresh the access token using the refresh token.
      * Requires the user to be authenticated and have the appropriate ability.
      */
