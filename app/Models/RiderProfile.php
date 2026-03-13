@@ -24,6 +24,7 @@ class RiderProfile extends BaseModel
         'current_latitude',
         'current_longitude',
         'total_deliveries',
+        'last_location_updated_at',
     ];
 
     /**
@@ -44,10 +45,11 @@ class RiderProfile extends BaseModel
     protected function casts(): array
     {
         return [
-            'rider_availability' => RiderAvailability::class,
-            'current_longitude'  => 'decimal:8',
-            'current_latitude'   => 'decimal:8',
-            'license_expiry'     => 'date',
+            'last_location_updated_at' => 'datetime',
+            'rider_availability'       => RiderAvailability::class,
+            'current_longitude'        => 'decimal:8',
+            'current_latitude'         => 'decimal:8',
+            'license_expiry'           => 'date',
         ];
     }
 

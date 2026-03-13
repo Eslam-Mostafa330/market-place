@@ -32,7 +32,6 @@ trait ApiException
             return ApiResponse::apiResponse(null, __('http-statuses.404'), 404);
         }
         if ($e instanceof HttpException) {
-            // Universal handler for HttpException
             return ApiResponse::apiResponse(null, $e->getMessage(), $e->getStatusCode());
         }
         if (config('app.env') == 'production') {
@@ -51,6 +50,9 @@ trait ApiException
         }
         if ($e instanceof HttpException && $e->getStatusCode() === 403) {
             return ApiResponse::apiResponse(null, __('main.not_verified'), 403);
+        }
+        if ($e instanceof \Predis\Connection\ConnectionException) {
+            return ApiResponse::apiResponse(null, __('http-statuses.503'), 503);
         }
         if ($e instanceof \Symfony\Component\Mailer\Exception\TransportException ||
             $e instanceof \Symfony\Component\Mailer\Exception\TransportExceptionInterface) {
