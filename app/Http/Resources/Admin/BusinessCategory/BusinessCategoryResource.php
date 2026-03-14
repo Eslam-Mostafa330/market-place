@@ -20,8 +20,7 @@ class BusinessCategoryResource extends JsonResource
         return [
             'id'           => $this->id,
             'name'         => $this->name,
-            'description'  => $this->description,
-            'image_url'    => $this->image_url,
+            'description'  => $this->whenExists($this->image_url),
             'stores_count' => $this->whenExists($this->stores_count),
         ];
     }

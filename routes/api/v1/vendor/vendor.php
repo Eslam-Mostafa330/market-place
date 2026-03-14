@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Vendor\BusinessCategoryController;
 use App\Http\Controllers\Api\V1\Vendor\BusinessProfileController;
 use App\Http\Controllers\Api\V1\Vendor\ProfileController;
 use App\Http\Controllers\Api\V1\Vendor\StoreController;
@@ -18,6 +19,9 @@ Route::controller(BusinessProfileController::class)->prefix('business-profile')-
     Route::get('/', 'show');
     Route::patch('/', 'update');
 });
+
+# ----- Business Category Routes
+Route::get('business-categories', BusinessCategoryController::class);
 
 # ----- Store Routes
 Route::apiResource('stores', StoreController::class)->middleware('vendor.verified');

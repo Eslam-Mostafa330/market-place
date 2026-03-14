@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Admin\CustomerController;
 use App\Http\Controllers\Api\V1\Admin\ProductCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ProfileController;
 use App\Http\Controllers\Api\V1\Admin\RiderController;
+use App\Http\Controllers\Api\V1\Admin\StoreController;
 use App\Http\Controllers\Api\V1\Admin\VendorBusinessProfileController;
 use App\Http\Controllers\Api\V1\Admin\VendorController;
 use Illuminate\Support\Facades\Route;
@@ -43,3 +44,6 @@ Route::apiResource('business-categories', BusinessCategoryController::class)->ex
 
 # ----- Product Category Routes
 Route::apiResource('product-categories', ProductCategoryController::class)->except('show');
+
+# ----- Store Routes
+Route::apiResource('stores', StoreController::class)->only('index', 'destroy');

@@ -69,4 +69,18 @@ class VendorProfile extends BaseModel
     {
         $query->where('verification_status', VendorVerificationStatus::VERIFIED->value);
     }
+
+    /****************************/
+    /***** Accessor Methods *****/
+    /****************************/
+    /**
+     * Get the vendor's preferred display name.
+     * 
+     * Returns the business_name if available, 
+     * otherwise falls back to the user's personal name.
+     */
+    public function getVendorNameAttribute(): ?string
+    {
+        return $this->business_name ?: $this->user?->name;
+    }
 }
