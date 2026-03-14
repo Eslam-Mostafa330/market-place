@@ -101,14 +101,6 @@ class User extends BaseAuthenticatableModel
     }
 
     /**
-     * The vendor user can have many vendors/stores
-     */
-    public function stores(): HasMany
-    {
-        return $this->hasMany(Store::class, 'vendor_id');
-    }
-
-    /**
      * The customer can place many orders
      */
     public function customerOrders(): HasMany

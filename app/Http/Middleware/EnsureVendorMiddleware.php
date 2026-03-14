@@ -10,8 +10,6 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EnsureVendorMiddleware
 {
-    use ApiResponse;
-
     /**
      * Handle an incoming request.
      *
@@ -21,9 +19,7 @@ class EnsureVendorMiddleware
     {
         $user = $request->user();
 
-        if (! $user || $user->role !== UserRole::VENDOR) {
-            return $this->apiResponse([], 'Not found', 404);
-        }
+        abort_if(! $user || $user->role !== UserRole::VENDOR, 404);
 
         return $next($request);
     }

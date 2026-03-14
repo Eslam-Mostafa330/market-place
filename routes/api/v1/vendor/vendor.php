@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Vendor\BusinessProfileController;
 use App\Http\Controllers\Api\V1\Vendor\ProfileController;
+use App\Http\Controllers\Api\V1\Vendor\StoreController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -17,3 +18,6 @@ Route::controller(BusinessProfileController::class)->prefix('business-profile')-
     Route::get('/', 'show');
     Route::patch('/', 'update');
 });
+
+# ----- Store Routes
+Route::apiResource('stores', StoreController::class)->middleware('vendor.verified');

@@ -27,6 +27,7 @@ return [
     'email_verified'           => 'Your email has been successfully verified.',
     'email_not_verified'       => 'Your email address has not been verified. Please check your inbox for the verification email or request a new one.',
     'email_already_verified'   => 'This email address has already been verified.',
+    'vendor_not_verified'      => 'Your profile is currently unverified. If you have already completed it, please wait while we review and verify your information.',
     'verification_sent'        => 'A new verification email has been sent to your email address.',
     'too_many_attempts'        => 'Too many attempts. Please try again in later.',
     'too_many_attempts_ip'     => 'Too many attempts from this IP address. Please try again later.',

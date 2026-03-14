@@ -3,6 +3,7 @@
 use App\Exceptions\Handler;
 use App\Http\Middleware\EnsureAdminMiddleware;
 use App\Http\Middleware\EnsureRiderMiddleware;
+use App\Http\Middleware\EnsureVendorIsVerifiedMiddleware;
 use App\Http\Middleware\EnsureVendorMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -44,10 +45,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'isAdmin'  => EnsureAdminMiddleware::class,
-            'isVendor' => EnsureVendorMiddleware::class,
-            'isRider'  => EnsureRiderMiddleware::class,
-            'ability'  => CheckForAnyAbility::class,
+            'isAdmin'         => EnsureAdminMiddleware::class,
+            'isVendor'        => EnsureVendorMiddleware::class,
+            'vendor.verified' => EnsureVendorIsVerifiedMiddleware::class,
+            'isRider'         => EnsureRiderMiddleware::class,
+            'ability'         => CheckForAnyAbility::class,
         ]);
     })
     ->withSingletons([

@@ -2,13 +2,13 @@
 
 namespace App\Http\Middleware;
 
-use App\Enums\UserRole;
-use App\Traits\ApiResponse;
+use App\Enums\VendorVerificationStatus;
+use App\Models\VendorProfile;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class EnsureRiderMiddleware
+class EnsureVendorIsVerifiedMiddleware
 {
     /**
      * Handle an incoming request.
@@ -17,9 +17,13 @@ class EnsureRiderMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $user = $request->user();
+        $profile = VendorProfile::where('user_id', auth()->id())->first();
 
-        abort_if(! $user || $user->role !== UserRole::RIDER, 404);
+        abort_if(
+            ! $profile || $profile->verification_status !== VendorVerificationStatus::VERIFIED,
+            403,
+            __('auth.vendor_not_verified')
+        );
 
         return $next($request);
     }

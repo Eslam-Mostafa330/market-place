@@ -10,8 +10,6 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EnsureAdminMiddleware
 {
-    use ApiResponse;
-    
     /**
      * Handle an incoming request.
      *
@@ -21,9 +19,7 @@ class EnsureAdminMiddleware
     {
         $user = $request->user();
 
-        if (! $user || $user->role !== UserRole::ADMIN) {
-            return $this->apiResponse([], 'Not found', 404);
-        }
+        abort_if(! $user || $user->role !== UserRole::ADMIN, 404);
 
         return $next($request);
     }

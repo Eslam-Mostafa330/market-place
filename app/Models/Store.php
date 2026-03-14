@@ -2,11 +2,18 @@
 
 namespace App\Models;
 
+use App\Filters\StoreFilters;
+use App\Traits\HasSlug;
+use Essa\APIToolKit\Filters\Filterable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Store extends BaseModel
 {
+    use HasSlug, Filterable;
+
+    protected string $default_filters = StoreFilters::class;
+
     /**
      * The attributes that are mass assignable.
      *
@@ -19,7 +26,7 @@ class Store extends BaseModel
         'slug',
         'description',
         'logo',
-        'cover_image',
+        'image',
     ];
 
     /**** ************* ****/
