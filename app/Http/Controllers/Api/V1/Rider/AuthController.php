@@ -21,7 +21,7 @@ class AuthController extends BaseApiController
     ) {}
 
     /**
-     * Handle login attempts.
+     * Handle the rider login attempts.
      */
     public function login(LoginRequest $request): JsonResponse
     {
@@ -32,10 +32,10 @@ class AuthController extends BaseApiController
             'password' => $request->password,
         ];
 
-        $result = $this->authService->attemptLogin($credentials, UserRole::RIDER);
+        $user = $this->authService->attemptLogin($credentials, UserRole::RIDER);
 
-        return $result
-            ? $this->apiResponse($result, __('auth.auth_success'))
+        return $user
+            ? $this->apiResponse($this->authService->issueTokens($user), __('auth.auth_success'))
             : $this->apiResponse([], __('auth.auth_failed'), 401);
     }
 

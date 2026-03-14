@@ -9,6 +9,7 @@ use App\Enums\TokenAbility;
 use App\Enums\UserRole;
 use App\Http\Resources\Auth\AuthUserResource;
 use App\Models\PersonalAccessToken;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Str;
@@ -17,11 +18,10 @@ use Illuminate\Http\Request;
 class AuthService
 {
     /**
-     * Attempts to authenticate a user with the provided credentials.
-     * If the credentials are valid and the account is active, a new session ID
-     * is generated and both an access token and a refresh token are issued for that session.
+     * Validates the user's credentials, role, email verification, and account status.
+     * Returns the authenticated user on success without issuing tokens
      */
-    public function attemptLogin(array $credentials, ?UserRole $expectedRole = null): ?array
+    public function attemptLogin(array $credentials, ?UserRole $expectedRole = null): ?User
     {
         if (! Auth::attempt($credentials)) return null;
 
@@ -39,13 +39,7 @@ class AuthService
             throw new HttpException(403, __('auth.account_inactive'));
         }
 
-        $sessionId = Str::uuid()->toString();
-
-        return [
-            'access_token'  => $this->createAccessToken($user, $sessionId),
-            'refresh_token' => $this->createRefreshToken($user, $sessionId),
-            'user'          => new AuthUserResource($user),
-        ];
+        return $user;
     }
 
     /**

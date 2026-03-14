@@ -18,25 +18,24 @@ class AuthController extends BaseApiController
     ) {}
 
     /**
-     * Handle login attempts, including 2FA checks and OTP sending if required.
+     * Handle the admin login attempts, including 2FA checks and OTP sending if required.
      */
     public function login(LoginRequest $request): JsonResponse
     {
         $credentials = $request->validated();
+        $user = $this->authService->attemptLogin($credentials, UserRole::ADMIN);
 
-        $result = $this->authService->attemptLogin($credentials, UserRole::ADMIN);
-
-        if (! $result) {
+        if (! $user) {
             return $this->apiResponse([], __('auth.auth_failed'), 401);
         }
 
-        $user = $result['user']->resource;
-
         if ($this->twoFactorService->isRequired($user, $request)) {
-            return $this->apiResponse(['temp_token' => $this->twoFactorService->sendOtp($user, $request)]);
+            return $this->apiResponse([
+                'temp_token' => $this->twoFactorService->sendOtp($user),
+            ]);
         }
 
-        return $this->apiResponse($result, __('auth.auth_success'));
+        return $this->apiResponse($this->authService->issueTokens($user), __('auth.auth_success'));
     }
 
     /**
