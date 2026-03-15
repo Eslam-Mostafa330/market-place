@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Admin\CustomerController;
 use App\Http\Controllers\Api\V1\Admin\ProductCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ProfileController;
 use App\Http\Controllers\Api\V1\Admin\RiderController;
+use App\Http\Controllers\Api\V1\Admin\StoreBranchController;
 use App\Http\Controllers\Api\V1\Admin\StoreController;
 use App\Http\Controllers\Api\V1\Admin\VendorBusinessProfileController;
 use App\Http\Controllers\Api\V1\Admin\VendorController;
@@ -47,3 +48,6 @@ Route::apiResource('product-categories', ProductCategoryController::class)->exce
 
 # ----- Store Routes
 Route::apiResource('stores', StoreController::class)->only('index', 'destroy');
+
+# ----- Store Branches Routes
+Route::apiResource('stores.branches', StoreBranchController::class)->except('update', 'store')->scoped();

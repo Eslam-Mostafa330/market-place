@@ -65,12 +65,11 @@ class StoreBranchController extends BaseApiController
 
     /**
      * Toggles the branch status between active and inactive.
-     * Verifies the full ownership chain before updating.
      */
     public function toggleStatus(Store $store, StoreBranch $branch): JsonResponse
     {
-        $this->authorizeBranch($store, $branch);
-
+        $this->authorizeStore($store);
+        
         $newStatus = $branch->status === DefineStatus::ACTIVE
             ? DefineStatus::INACTIVE
             : DefineStatus::ACTIVE;

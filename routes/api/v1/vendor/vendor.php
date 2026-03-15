@@ -24,11 +24,12 @@ Route::controller(BusinessProfileController::class)->prefix('business-profile')-
 # ----- Business Category Routes
 Route::get('business-categories', BusinessCategoryController::class);
 
+# ----- Routes of the vendor that should be verified ----- #
 Route::middleware('vendor.verified')->group(function () {
     # ----- Store Routes
     Route::apiResource('stores', StoreController::class);
 
     # ----- Store Branches Routes
-    Route::apiResource('stores.branches', StoreBranchController::class);
-    Route::patch('stores/{store}/branches/{branch}/toggle-status', [StoreBranchController::class, 'toggleStatus']);
+    Route::apiResource('stores.branches', StoreBranchController::class)->scoped();
+    Route::patch('stores/{store}/branches/{branch}/toggle-status', [StoreBranchController::class, 'toggleStatus'])->scopeBindings();
 });
