@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Vendor\BusinessCategoryController;
 use App\Http\Controllers\Api\V1\Vendor\BusinessProfileController;
 use App\Http\Controllers\Api\V1\Vendor\ProfileController;
+use App\Http\Controllers\Api\V1\Vendor\StoreBranchController;
 use App\Http\Controllers\Api\V1\Vendor\StoreController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,5 +24,11 @@ Route::controller(BusinessProfileController::class)->prefix('business-profile')-
 # ----- Business Category Routes
 Route::get('business-categories', BusinessCategoryController::class);
 
-# ----- Store Routes
-Route::apiResource('stores', StoreController::class)->middleware('vendor.verified');
+Route::middleware('vendor.verified')->group(function () {
+    # ----- Store Routes
+    Route::apiResource('stores', StoreController::class);
+
+    # ----- Store Branches Routes
+    Route::apiResource('stores.branches', StoreBranchController::class);
+    Route::patch('stores/{store}/branches/{branch}/toggle-status', [StoreBranchController::class, 'toggleStatus']);
+});

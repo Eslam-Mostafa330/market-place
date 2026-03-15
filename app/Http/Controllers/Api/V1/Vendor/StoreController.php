@@ -3,17 +3,19 @@
 namespace App\Http\Controllers\Api\V1\Vendor;
 
 use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Controllers\Api\V1\Vendor\Concerns\VendorStoreAuthorization;
 use App\Http\Requests\Vendor\Store\CreateStoreRequest;
 use App\Http\Requests\Vendor\Store\UpdateStoreRequest;
 use App\Http\Resources\Vendor\Store\StoreResource;
 use App\Models\Store;
-use App\Models\VendorProfile;
 use App\Traits\MediaHandler;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class StoreController extends BaseApiController
 {
+    use VendorStoreAuthorization;
+
     public function index(): AnonymousResourceCollection
     {
         $stores = Store::select('id', 'business_category_id', 'name', 'description', 'logo', 'image')
@@ -47,7 +49,7 @@ class StoreController extends BaseApiController
 
     public function update(UpdateStoreRequest $request, Store $store): JsonResponse
     {
-        abort_if($store->vendor_profile_id !== $this->vendorProfile()->id, 403);
+        $this->authorizeStore($store);
         $data = $request->validated();
 
         $data['logo']  = $request->hasFile('logo')
@@ -60,27 +62,18 @@ class StoreController extends BaseApiController
 
         $store->update($data);
         $store->load('businessCategory:id,name');
-
         return $this->apiResponseUpdated(new StoreResource($store));
     }
 
     public function destroy(Store $store): JsonResponse
     {
-        abort_if($store->vendor_profile_id !== $this->vendorProfile()->id, 403);
+        $this->authorizeStore($store);
+        abort_if($store->branches()->exists(), 403, __('validation.custom.cannot_delete_store'));
 
         $store->logo  ? MediaHandler::deleteMedia($store->logo)  : null;
         $store->image ? MediaHandler::deleteMedia($store->image) : null;
 
         $store->delete();
         return $this->apiResponseDeleted();
-    }
-
-    /**
-     * Retrieves the authenticated vendor's profile once and reuses it across methods.
-     * Scoping all queries to this profile ensures vendors can only access their own stores.
-     */
-    private function vendorProfile(): VendorProfile
-    {
-        return VendorProfile::where('user_id', auth()->id())->firstOrFail();
     }
 }

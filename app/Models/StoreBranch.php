@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Enums\DefineStatus;
+use App\Filters\StoreBranchFilters;
 use App\Traits\HasSlug;
+use Essa\APIToolKit\Filters\Filterable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -11,7 +13,9 @@ use Illuminate\Database\Eloquent\Builder;
 
 class StoreBranch extends BaseModel
 {
-    use HasSlug;
+    use HasSlug, Filterable;
+
+    protected string $default_filters = StoreBranchFilters::class;
 
     /**
      * The attributes that are mass assignable.
