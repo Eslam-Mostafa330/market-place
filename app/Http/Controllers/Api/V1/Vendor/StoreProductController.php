@@ -16,7 +16,7 @@ use App\Traits\MediaHandler;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
-class ProductController extends BaseApiController
+class StoreProductController extends BaseApiController
 {
     use VendorStoreAuthorization;
 

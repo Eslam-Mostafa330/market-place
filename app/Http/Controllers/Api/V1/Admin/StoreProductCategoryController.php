@@ -10,7 +10,7 @@ use App\Models\ProductCategory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
-class ProductCategoryController extends BaseApiController
+class StoreProductCategoryController extends BaseApiController
 {
     public function index(): AnonymousResourceCollection
     {

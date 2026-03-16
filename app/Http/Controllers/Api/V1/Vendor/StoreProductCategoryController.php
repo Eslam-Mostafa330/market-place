@@ -6,7 +6,7 @@ use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Resources\Vendor\ProductCategory\ProductCategoryResource;
 use App\Models\ProductCategory;
 
-class ProductCategoryController extends BaseApiController
+class StoreProductCategoryController extends BaseApiController
 {
     /**
      * To use in the create/update product in the product category dropdown

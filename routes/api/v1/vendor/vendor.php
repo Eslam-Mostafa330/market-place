@@ -2,11 +2,11 @@
 
 use App\Http\Controllers\Api\V1\Vendor\BusinessCategoryController;
 use App\Http\Controllers\Api\V1\Vendor\BusinessProfileController;
-use App\Http\Controllers\Api\V1\Vendor\ProductCategoryController;
-use App\Http\Controllers\Api\V1\Vendor\ProductController;
 use App\Http\Controllers\Api\V1\Vendor\ProfileController;
 use App\Http\Controllers\Api\V1\Vendor\StoreBranchController;
 use App\Http\Controllers\Api\V1\Vendor\StoreController;
+use App\Http\Controllers\Api\V1\Vendor\StoreProductCategoryController;
+use App\Http\Controllers\Api\V1\Vendor\StoreProductController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -36,9 +36,9 @@ Route::middleware('vendor.verified')->group(function () {
     Route::patch('stores/{store}/branches/{branch}/toggle-status', [StoreBranchController::class, 'toggleStatus'])->scopeBindings();
 
     # ----- Store Product Category Routes
-    Route::get('product-categories', ProductCategoryController::class);
+    Route::get('product-categories', StoreProductCategoryController::class);
 
     # ----- Store Product Routes
-    Route::apiResource('stores.products', ProductController::class)->scoped();
-    Route::patch('stores/{store}/products/{product}/toggle-status', [ProductController::class, 'toggleStatus'])->scopeBindings();
+    Route::apiResource('stores.products', StoreProductController::class)->scoped();
+    Route::patch('stores/{store}/products/{product}/toggle-status', [StoreProductController::class, 'toggleStatus'])->scopeBindings();
 });

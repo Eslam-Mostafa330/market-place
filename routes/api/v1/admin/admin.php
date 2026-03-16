@@ -3,11 +3,12 @@
 use App\Http\Controllers\Api\V1\Admin\AdminController;
 use App\Http\Controllers\Api\V1\Admin\BusinessCategoryController;
 use App\Http\Controllers\Api\V1\Admin\CustomerController;
-use App\Http\Controllers\Api\V1\Admin\ProductCategoryController;
 use App\Http\Controllers\Api\V1\Admin\ProfileController;
 use App\Http\Controllers\Api\V1\Admin\RiderController;
 use App\Http\Controllers\Api\V1\Admin\StoreBranchController;
 use App\Http\Controllers\Api\V1\Admin\StoreController;
+use App\Http\Controllers\Api\V1\Admin\StoreProductCategoryController;
+use App\Http\Controllers\Api\V1\Admin\StoreProductController;
 use App\Http\Controllers\Api\V1\Admin\VendorBusinessProfileController;
 use App\Http\Controllers\Api\V1\Admin\VendorController;
 use Illuminate\Support\Facades\Route;
@@ -43,11 +44,14 @@ Route::patch('riders/{rider}/toggle-status', [RiderController::class, 'toggleSta
 # ----- Business Category Routes
 Route::apiResource('business-categories', BusinessCategoryController::class)->except('show');
 
-# ----- Product Category Routes
-Route::apiResource('product-categories', ProductCategoryController::class)->except('show');
+# ----- Store Product Category Routes
+Route::apiResource('product-categories', StoreProductCategoryController::class)->except('show');
 
 # ----- Store Routes
 Route::apiResource('stores', StoreController::class)->only('index', 'destroy');
 
 # ----- Store Branches Routes
 Route::apiResource('stores.branches', StoreBranchController::class)->except('update', 'store')->scoped();
+
+# ----- Store Product Routes
+Route::apiResource('stores.products', StoreProductController::class)->except('update', 'store')->scoped();
