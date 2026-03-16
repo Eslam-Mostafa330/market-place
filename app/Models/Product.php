@@ -4,14 +4,18 @@ namespace App\Models;
 
 use App\Enums\BooleanStatus;
 use App\Enums\DefineStatus;
+use App\Filters\ProductFilters;
 use App\Traits\HasSlug;
+use Essa\APIToolKit\Filters\Filterable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends BaseModel
 {
-    use HasSlug;
+    use HasSlug, Filterable;
+
+    protected string $default_filters = ProductFilters::class;
 
     /**
      * The attributes that are mass assignable.
@@ -31,6 +35,16 @@ class Product extends BaseModel
         'preparation_time',
         'is_featured',
         'status',
+    ];
+
+    /**
+     * The attributes that should be defaulted when creating a new model instance.
+     *
+     * @var list<string>
+     */
+    protected $attributes = [
+        'is_featured' => BooleanStatus::NO,
+        'status'      => DefineStatus::ACTIVE,
     ];
 
     /**
@@ -54,7 +68,7 @@ class Product extends BaseModel
     /**
      * The product is belongs to a category
      */
-    public function category(): BelongsTo
+    public function productCategory(): BelongsTo
     {
         return $this->belongsTo(ProductCategory::class, 'product_category_id');
     }

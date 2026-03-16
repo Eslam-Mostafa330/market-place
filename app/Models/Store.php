@@ -7,6 +7,8 @@ use App\Traits\HasSlug;
 use Essa\APIToolKit\Filters\Filterable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 
 class Store extends BaseModel
 {
@@ -78,6 +80,18 @@ class Store extends BaseModel
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
+    }
+
+    /**** ************* ****/
+    /**** Local Scopes  ****/
+    /**** ************* ****/
+    /**
+     * To display the related stores for the authenticated vendor
+     */
+    #[Scope]
+    protected function forAuthVendor(Builder $query): void
+    {
+        $query->where('vendor_profile_id', auth()->user()->vendorProfile->id);
     }
 
     /****************************/

@@ -182,7 +182,8 @@ return [
         'cannot_delete_business_category'      => 'Cannot delete category with associated stores.',
         'cannot_delete_product_category'       => 'Cannot delete category with associated products. Please delete or reassign its products first.',
         'cannot_delete_category_subcategories' => 'Cannot delete category with subcategories. Please delete or reassign its subcategories first.',
-        'cannot_delete_store'                  => 'Cannot delete the store since it is assigned to a branch. Please delete the branch first.',
+        'store_has_branches'                   => 'Cannot delete the store since it has a related branches.',
+        'store_has_products'                   => 'Cannot delete the store since it has a related products.',
         'action_denied'                        => 'You cannot perform this action on your own account.',
         'verify_admins'                        => 'The specified user is not an admin.',
         'verify_vendors'                       => 'The specified user is not a vendor.',
@@ -191,6 +192,7 @@ return [
         'verification_status_invalid'          => 'Verification status must be either verified or rejected.',
         'rejection_reason_required'            => 'A rejection reason is required when the verification status is rejected.',
         'rejection_reason_prohibited'          => 'Rejection reason cannot be provided when verification status is verified.',
+        'select_subcategory'                   => 'Please select a subcategory, not a top-level category',
         'attribute-name' => [
             'rule-name' => 'custom-message',
         ],

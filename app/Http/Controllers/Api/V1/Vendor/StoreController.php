@@ -19,7 +19,7 @@ class StoreController extends BaseApiController
     public function index(): AnonymousResourceCollection
     {
         $stores = Store::select('id', 'business_category_id', 'name', 'description', 'logo', 'image')
-            ->where('vendor_profile_id', $this->vendorProfile()->id)
+            ->forAuthVendor()
             ->with('businessCategory:id,name')
             ->useFilters()
             ->latest()
@@ -31,7 +31,7 @@ class StoreController extends BaseApiController
     public function store(CreateStoreRequest $request): JsonResponse
     {
         $data = $request->validated();
-        $data['vendor_profile_id'] = $this->vendorProfile()->id;
+        $data['vendor_profile_id'] = auth()->user()->vendorProfile->id;
 
         $data['image'] = $request->hasFile('image')
             ? MediaHandler::upload($request->file('image'), 'stores/images')
@@ -43,7 +43,6 @@ class StoreController extends BaseApiController
 
         $store = Store::create($data);
         $store->load('businessCategory:id,name');
-
         return $this->apiResponseStored(new StoreResource($store));
     }
 
@@ -68,7 +67,8 @@ class StoreController extends BaseApiController
     public function destroy(Store $store): JsonResponse
     {
         $this->authorizeStore($store);
-        abort_if($store->branches()->exists(), 403, __('validation.custom.cannot_delete_store'));
+        abort_if($store->branches()->exists(), 403, __('validation.custom.store_has_branches'));
+        abort_if($store->products()->exists(), 403, __('validation.custom.store_has_products'));
 
         $store->logo  ? MediaHandler::deleteMedia($store->logo)  : null;
         $store->image ? MediaHandler::deleteMedia($store->image) : null;
