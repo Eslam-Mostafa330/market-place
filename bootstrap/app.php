@@ -41,6 +41,10 @@ return Application::configure(basePath: dirname(__DIR__))
             Route::prefix('api/v1/rider')->middleware(['api', 'auth:sanctum', 'isRider'])
                 ->as('rider.')
                 ->group(base_path('routes/api/v1/rider/rider.php'));
+
+            Route::prefix('api/v1/customer/auth')->middleware(['api'])
+                ->as('customer.auth.')
+                ->group(base_path('routes/api/v1/customer/auth.php'));
         }
     )
     ->withMiddleware(function (Middleware $middleware): void {

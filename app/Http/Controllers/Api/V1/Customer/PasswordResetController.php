@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1\Rider;
+namespace App\Http\Controllers\Api\V1\Customer;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Api\BaseApiController;
-use App\Http\Requests\Rider\Auth\ForgotPasswordRequest;
-use App\Http\Requests\Rider\Auth\ResetPasswordRequest;
+use App\Http\Requests\Customer\Auth\ForgotPasswordRequest;
+use App\Http\Requests\Customer\Auth\ResetPasswordRequest;
 use App\Models\User;
 use App\Services\PasswordResetService;
 use Illuminate\Http\JsonResponse;
@@ -31,7 +31,7 @@ class PasswordResetController extends BaseApiController
         $userEmail = $request->validated()['email'];
         $user = User::where('email', $userEmail)->first();
 
-        if (! $user || $user->role !== UserRole::RIDER) {
+        if (! $user || $user->role !== UserRole::CUSTOMER) {
             return $this->apiResponse([], __('auth.auth_failed'), 401);
         }
 
