@@ -15,7 +15,7 @@ class UpdateVendorBusinessProfileRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'business_name'        => ['required', 'string', 'max:255'],
+            'business_name'        => ['sometimes', 'required', 'string', 'max:255'],
             'business_email'       => ['nullable', 'max:255', Rule::email()->strict()->preventSpoofing()],
             'business_license'     => ['nullable', 'string', 'max:255'],
             'business_phone'       => ['nullable', 'string', 'max:25', 'regex:/^[0-9\s\-\+\(\)]+$/'],

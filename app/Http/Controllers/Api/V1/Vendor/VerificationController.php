@@ -23,7 +23,7 @@ class VerificationController extends BaseApiController
 
         return $verified
             ? $this->apiResponse(__('auth.email_verified'))
-            : $this->apiResponse(__('auth.invalid_or_expired_token'), 422);
+            : $this->apiResponse([], __('auth.invalid_or_expired_token'), 422);
     }
 
     /**
@@ -35,7 +35,7 @@ class VerificationController extends BaseApiController
         $user = User::where('email', $request->email)->first();
 
         if ($user->email_verified_at) {
-            return $this->apiResponse(__('auth.email_already_verified'), 422);
+            return $this->apiResponse([], __('auth.email_already_verified'), 422);
         }
 
         $this->verificationService->sendVerificationEmail($user, $request->ip());

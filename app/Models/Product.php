@@ -43,8 +43,9 @@ class Product extends BaseModel
      * @var list<string>
      */
     protected $attributes = [
-        'is_featured' => BooleanStatus::NO,
-        'status'      => DefineStatus::ACTIVE,
+        'preparation_time' => 0,
+        'is_featured'      => BooleanStatus::NO,
+        'status'           => DefineStatus::ACTIVE,
     ];
 
     /**

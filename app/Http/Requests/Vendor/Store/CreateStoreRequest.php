@@ -14,7 +14,7 @@ class CreateStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'business_category_id' => ['required', 'uuid', 'exists:business_categories,id'],
+            'business_category_id' => ['required', 'uuid', 'max:36', 'exists:business_categories,id'],
             'name'                 => ['required', 'string', 'max:255', 'unique:stores,name'],
             'description'          => ['nullable', 'string', 'max:1000'],
             'logo'                 => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:1024'],

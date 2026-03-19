@@ -15,5 +15,5 @@ Route::controller(ProfileController::class)->prefix('profile')->group(function (
 Route::controller(RiderLocationController::class)->group(function () {
     Route::get('/availability', 'getAvailability');
     Route::patch('/availability/update', 'updateAvailability');
-    Route::post('/location/update', 'updateLocation');
+    Route::patch('/location/update', 'updateLocation');
 });

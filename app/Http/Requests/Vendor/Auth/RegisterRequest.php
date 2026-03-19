@@ -16,7 +16,7 @@ class RegisterRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'     => ['required', 'string', 'max:255'],
+            'name'     => ['required', 'string', 'min:2', 'max:255'],
             'email'    => ['required', 'max:255', 'unique:users,email', Rule::email()->strict()->preventSpoofing()],
             'phone'    => ['required', 'string', 'regex:/^[0-9\s\-\+\(\)]+$/', 'max:25', 'unique:users,phone'],
             'password' => ['required', 'confirmed', 'max:100', Password::defaults()],

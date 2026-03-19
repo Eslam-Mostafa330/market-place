@@ -18,7 +18,7 @@ class UpdateProductCategoryRequest extends FormRequest
         $productCategory = $this->route('product_category');
 
         return [
-            'name'      => ['required', 'string', 'max:255', Rule::unique('product_categories', 'name')->ignore($productCategory)],
+            'name'      => ['sometimes', 'required', 'string', 'max:255', Rule::unique('product_categories', 'name')->ignore($productCategory)],
             'parent_id' => ['nullable', 'string', 'max:36', 'exists:product_categories,id', new SingleCategoryLevel(),],
         ];
     }

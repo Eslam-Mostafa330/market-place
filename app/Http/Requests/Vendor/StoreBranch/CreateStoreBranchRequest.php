@@ -22,7 +22,7 @@ class CreateStoreBranchRequest extends FormRequest
             'area'              => ['nullable', 'string', 'max:255'],
             'phone'             => ['nullable', 'string', 'regex:/^[0-9\s\-\+\(\)]+$/', 'max:25'],
             'delivery_fee'      => ['required', 'numeric', 'min:0'],
-            'delivery_time_max' => ['required', 'integer', 'min:1'],
+            'delivery_time_max' => ['required', 'integer', 'min:1', 'max:65535'],
             'latitude'          => ['required', 'numeric', 'between:-90,90'],
             'longitude'         => ['required', 'numeric', 'between:-180,180'],
             'status'            => ['required', 'integer', Rule::in(DefineStatus::values())],

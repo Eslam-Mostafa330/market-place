@@ -181,6 +181,7 @@ return [
     'custom' => [
         'cannot_delete_business_category'      => 'Cannot delete category with associated stores.',
         'cannot_delete_product_category'       => 'Cannot delete category with associated products. Please delete or reassign its products first.',
+        'cannot_delete_store'                  => 'Cannot delete store with associated branches. Please delete or reassign its branch first.',
         'cannot_delete_category_subcategories' => 'Cannot delete category with subcategories. Please delete or reassign its subcategories first.',
         'store_has_branches'                   => 'Cannot delete the store since it has a related branches.',
         'store_has_products'                   => 'Cannot delete the store since it has a related products.',
@@ -193,6 +194,7 @@ return [
         'rejection_reason_required'            => 'A rejection reason is required when the verification status is rejected.',
         'rejection_reason_prohibited'          => 'Rejection reason cannot be provided when verification status is verified.',
         'select_subcategory'                   => 'Please select a subcategory, not a top-level category',
+        'cannot_update_location'               => 'Cannot update location while the availability status is unavailable',
         'attribute-name' => [
             'rule-name' => 'custom-message',
         ],

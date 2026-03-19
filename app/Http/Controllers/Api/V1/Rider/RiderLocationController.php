@@ -32,7 +32,7 @@ class RiderLocationController extends BaseApiController
     public function updateLocation(UpdateLocationRequest $request)
     {
         $profile = RiderProfile::where('user_id', auth()->id())->firstOrFail();
-        abort_if($profile->rider_availability !== RiderAvailability::AVAILABLE, 422, 'Cannot update location while unavailable');
+        abort_if($profile->rider_availability !== RiderAvailability::AVAILABLE, 422, __('validation.custom.cannot_update_location'));
 
         $data = $request->validated();
         $now  = $this->locationService->updateRiderLocation($profile, $data['current_latitude'], $data['current_longitude']);

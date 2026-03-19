@@ -16,7 +16,7 @@ class ForgotPasswordRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'email', Rule::exists('users', 'email')->where(fn ($query) => $query->where('role', UserRole::RIDER->value))],
+            'email' => ['required', 'email', 'max:255', Rule::exists('users', 'email')->where(fn ($query) => $query->where('role', UserRole::RIDER->value))],
         ];
     }
 }

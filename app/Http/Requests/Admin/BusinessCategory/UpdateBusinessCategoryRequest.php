@@ -17,7 +17,7 @@ class UpdateBusinessCategoryRequest extends FormRequest
         $businessCategory = $this->route('business_category');
 
         return [
-            'name'        => ['required', 'string', 'max:255', Rule::unique('business_categories', 'name')->ignore($businessCategory)],
+            'name'        => ['sometimes', 'required', 'string', 'max:255', Rule::unique('business_categories', 'name')->ignore($businessCategory)],
             'description' => ['nullable', 'string', 'max:1000'],
             'image'       => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:1024'],
         ];

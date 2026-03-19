@@ -15,8 +15,8 @@ class UpdateStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'business_category_id' => ['sometimes', 'uuid', 'exists:business_categories,id'],
-            'name'                 => ['sometimes', 'string', 'max:255', Rule::unique('stores', 'name')->ignore($this->store->id)],
+            'business_category_id' => ['sometimes', 'required', 'uuid', 'exists:business_categories,id'],
+            'name'                 => ['sometimes', 'required', 'string', 'max:255', Rule::unique('stores', 'name')->ignore($this->store->id)],
             'description'          => ['nullable', 'string', 'max:1000'],
             'logo'                 => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:1024'],
             'image'                => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:1024'],

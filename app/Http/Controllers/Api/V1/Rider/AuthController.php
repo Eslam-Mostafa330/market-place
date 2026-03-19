@@ -25,7 +25,8 @@ class AuthController extends BaseApiController
      */
     public function login(LoginRequest $request): JsonResponse
     {
-        $field = filter_var($request->identifier, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
+        $isEmail = filter_var($request->identifier, FILTER_VALIDATE_EMAIL);
+        $field   = $isEmail ? 'email' : 'phone';
 
         $credentials = [
             $field     => $request->identifier,
@@ -34,9 +35,12 @@ class AuthController extends BaseApiController
 
         $user = $this->authService->attemptLogin($credentials, UserRole::RIDER);
 
-        return $user
-            ? $this->apiResponse($this->authService->issueTokens($user), __('auth.auth_success'))
-            : $this->apiResponse([], __('auth.auth_failed'), 401);
+        if ($user) {
+            return $this->apiResponse($this->authService->issueTokens($user), __('auth.auth_success'));
+        }
+
+        $messageKey = $isEmail ? 'auth_email_failed' : 'auth_phone_failed';
+        return $this->apiResponse([], __("auth.{$messageKey}"), 401);
     }
 
         /**

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Rider\Auth;
 
 use App\Http\Requests\FormRequest;
+use App\Rules\Login\EmailOrPhone;
 
 class LoginRequest extends FormRequest
 {
@@ -14,15 +15,8 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'identifier' => ['required', 'string', 'max:255'],
+            'identifier' => ['required', 'string', 'max:255', new EmailOrPhone],
             'password'   => ['required', 'string', 'max:100'],
-        ];
-    }
-
-    public function attributes(): array
-    {
-        return [
-            'identifier' => __('auth.identifier_field'),
         ];
     }
 }
