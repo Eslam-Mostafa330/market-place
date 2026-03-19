@@ -20,6 +20,7 @@ class ProfileController extends BaseApiController
     public function show(): JsonResponse
     {
         $rider = auth()->user();
+        $rider->load('riderProfile:id,user_id,license_number,license_expiry,vehicle_type,vehicle_number,total_deliveries');
         return $this->apiResponseShow(new ProfileResource($rider));
     }
 
