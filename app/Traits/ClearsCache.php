@@ -20,4 +20,9 @@ trait ClearsCache
     {
         Cache::forget("rider_summary_{$riderId}");
     }
+
+    public function clearCustomerSummaryCache($customerId)
+    {
+        Cache::forget("customer_summary_{$customerId}");
+    }
 }

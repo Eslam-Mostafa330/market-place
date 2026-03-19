@@ -7,7 +7,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class EnsureRiderMiddleware
+class EnsureCustomerMiddleware
 {
     /**
      * Handle an incoming request.
@@ -18,7 +18,7 @@ class EnsureRiderMiddleware
     {
         $user = $request->user();
 
-        abort_if(! $user || $user->role !== UserRole::RIDER, 404);
+        abort_if(! $user || $user->role !== UserRole::CUSTOMER, 404);
 
         return $next($request);
     }

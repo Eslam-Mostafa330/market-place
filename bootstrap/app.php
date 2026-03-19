@@ -2,6 +2,7 @@
 
 use App\Exceptions\Handler;
 use App\Http\Middleware\EnsureAdminMiddleware;
+use App\Http\Middleware\EnsureCustomerMiddleware;
 use App\Http\Middleware\EnsureRiderMiddleware;
 use App\Http\Middleware\EnsureVendorIsVerifiedMiddleware;
 use App\Http\Middleware\EnsureVendorMiddleware;
@@ -45,6 +46,10 @@ return Application::configure(basePath: dirname(__DIR__))
             Route::prefix('api/v1/customer/auth')->middleware(['api'])
                 ->as('customer.auth.')
                 ->group(base_path('routes/api/v1/customer/auth.php'));
+
+            Route::prefix('api/v1/customer')->middleware(['api', 'auth:sanctum', 'isCustomer'])
+                ->as('customer.')
+                ->group(base_path('routes/api/v1/customer/customer.php'));
         }
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -53,6 +58,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'isVendor'        => EnsureVendorMiddleware::class,
             'vendor.verified' => EnsureVendorIsVerifiedMiddleware::class,
             'isRider'         => EnsureRiderMiddleware::class,
+            'isCustomer'      => EnsureCustomerMiddleware::class,
             'ability'         => CheckForAnyAbility::class,
         ]);
     })
