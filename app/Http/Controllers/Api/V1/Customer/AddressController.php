@@ -7,8 +7,8 @@ use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Controllers\Api\V1\Customer\Concerns\CustomerAddressAuthorization;
 use App\Http\Requests\Customer\Address\CreateCustomerAddressRequest;
 use App\Http\Requests\Customer\Address\UpdateCustomerAddressRequest;
-use App\Http\Resources\Customer\Address\CustomerAddressListResource;
-use App\Http\Resources\Customer\Address\CustomerAddressResource;
+use App\Http\Resources\Customer\Address\AddressListResource;
+use App\Http\Resources\Customer\Address\AddressResource;
 use App\Http\Resources\Customer\Address\DefaultAddressResource;
 use App\Models\UserAddress;
 use Illuminate\Http\JsonResponse;
@@ -27,7 +27,7 @@ class AddressController extends BaseApiController
             ->useFilters()
             ->dynamicPaginate();
 
-        return CustomerAddressListResource::collection($addresses);
+        return AddressListResource::collection($addresses);
     }
 
     public function show(UserAddress $address): JsonResponse
@@ -54,14 +54,14 @@ class AddressController extends BaseApiController
             ->where('user_addresses.id', $address->id)
             ->firstOrFail();
 
-        return $this->apiResponseShow(new CustomerAddressResource($address));
+        return $this->apiResponseShow(new AddressResource($address));
     }
 
     public function store(CreateCustomerAddressRequest $request): JsonResponse
     {
         $data = $request->validated();
         $address = UserAddress::create($data);
-        return $this->apiResponseStored(new CustomerAddressResource($address));
+        return $this->apiResponseStored(new AddressResource($address));
     }
 
     public function update(UpdateCustomerAddressRequest $request, UserAddress $address): JsonResponse
@@ -69,7 +69,7 @@ class AddressController extends BaseApiController
         $this->authorizeCustomerAddress($address);
         $data = $request->validated();
         $address->update($data);
-        return $this->apiResponseUpdated(new CustomerAddressResource($address));
+        return $this->apiResponseUpdated(new AddressResource($address));
     }
 
     public function destroy(UserAddress $address): JsonResponse

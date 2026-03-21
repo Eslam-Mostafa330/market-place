@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\BusinessCategory;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class BusinessCategorySeeder extends Seeder
 {
@@ -13,6 +13,49 @@ class BusinessCategorySeeder extends Seeder
      */
     public function run(): void
     {
-        BusinessCategory::factory()->count(10)->create();
+        $categories = [
+            [
+                'name'        => 'Groceries',
+                'description' => 'Daily essentials, fresh produce, dairy, bakery, household items and supermarket products.',
+            ],
+            [
+                'name'        => 'Food & Restaurants',
+                'description' => 'Restaurants, fast food, cafes, home-cooked meals, pizza, oriental food, desserts and more.',
+            ],
+            [
+                'name'        => 'Electronics',
+                'description' => 'Mobiles, laptops, accessories, home appliances, gaming, TVs and electronic gadgets.',
+            ],
+            [
+                'name'        => 'Fashion',
+                'description' => 'Clothing for men, women, kids, shoes, accessories, modest wear and seasonal fashion.',
+            ],
+            [
+                'name'        => 'Home & Kitchen',
+                'description' => 'Furniture, kitchenware, home decor, bedding, appliances and household essentials.',
+            ],
+            [
+                'name'        => 'Health & Pharmacy',
+                'description' => 'Medicines, vitamins, medical devices, baby care, health supplements and first aid.',
+            ],
+            [
+                'name'        => 'Flowers & Gifts',
+                'description' => 'Bouquets, plants, gifts, occasions presents and personalized items.',
+            ],
+        ];
+
+        foreach ($categories as $data) {
+            $name = $data['name'];
+
+            BusinessCategory::updateOrCreate(
+                ['name' => $name],
+                [
+                    'name'        => $name,
+                    'slug'        => Str::slug($name),
+                    'image'       => 'business-categories/images/' . Str::slug($name, '-') . '.jpg',
+                    'description' => $data['description'],
+                ]
+            );
+        }
     }
 }
