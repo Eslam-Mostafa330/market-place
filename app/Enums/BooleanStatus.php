@@ -5,7 +5,7 @@ namespace App\Enums;
 enum BooleanStatus: int
 {
     case YES = 1;
-    case NO = 2;
+    case NO = 0;
 
     /**
      * Get the default boolean status (YES)

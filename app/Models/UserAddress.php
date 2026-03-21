@@ -23,11 +23,22 @@ class UserAddress extends BaseModel
         'postal_code',
         'address_line_1',
         'address_line_2',
+        'contact_phone',
+        'additional_phone',
         'additional_info',
         'latitude',
         'longitude',
         'is_default',
         'type',
+    ];
+
+    /**
+     * The attributes that should be defaulted when creating a new model instance.
+     *
+     * @var list<string>
+     */
+    protected $attributes = [
+        'is_default' => BooleanStatus::YES->value,
     ];
 
     /**

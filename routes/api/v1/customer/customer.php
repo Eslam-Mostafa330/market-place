@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Customer\AddressController;
 use App\Http\Controllers\Api\V1\Customer\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -10,3 +11,7 @@ Route::controller(ProfileController::class)->prefix('profile')->group(function (
     Route::get('/summary', 'showProfileSummary');
     Route::patch('/', 'update');
 });
+
+# ----- Address Routes
+Route::apiResource('addresses', AddressController::class);
+Route::patch('addresses/{address}/default', [AddressController::class, 'setDefault']);
