@@ -20,7 +20,6 @@ class CustomerAddressListResource extends JsonResource
             'city'           => $this->city,
             'state'          => $this->state,
             'address_line_1' => $this->address_line_1,
-            'contact_phone'  => $this->contact_phone,
             'is_default'     => $this->is_default,
         ];
     }

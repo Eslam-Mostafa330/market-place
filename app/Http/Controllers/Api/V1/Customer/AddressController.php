@@ -18,22 +18,14 @@ use Illuminate\Support\Facades\DB;
 class AddressController extends BaseApiController
 {
     use CustomerAddressAuthorization;
-    
+
     public function index(): AnonymousResourceCollection
     {
-        $addresses = UserAddress::select([
-                'user_addresses.id',
-                'user_addresses.country',
-                'user_addresses.city',
-                'user_addresses.state',
-                'user_addresses.address_line_1',
-                'user_addresses.is_default',
-                DB::raw('COALESCE(user_addresses.contact_phone, users.phone) as contact_phone'),
-            ])
-            ->join('users', 'users.id', '=', 'user_addresses.user_id')
-            ->where('user_addresses.user_id', auth()->id())
-            ->latest('user_addresses.created_at')
-            ->get();
+        $addresses = UserAddress::select('id', 'country', 'city', 'state', 'address_line_1', 'is_default')
+            ->where('user_id', auth()->id())
+            ->latest()
+            ->useFilters()
+            ->dynamicPaginate();
 
         return CustomerAddressListResource::collection($addresses);
     }

@@ -4,12 +4,18 @@ namespace App\Models;
 
 use App\Enums\AddressType;
 use App\Enums\BooleanStatus;
+use App\Filters\UserAddressFilters;
+use Essa\APIToolKit\Filters\Filterable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 
 class UserAddress extends BaseModel
 {
+    use Filterable;
+    
+    protected string $default_filters = UserAddressFilters::class;
+
     /**
      * The attributes that are mass assignable.
      *
