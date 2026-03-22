@@ -18,13 +18,15 @@ class StoreResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'          => $this->id,
-            'name'        => $this->name,
-            'slug'        => $this->slug,
-            'logo'        => $this->logo_url,
-            'image'       => $this->whenExists($this->image),
-            'description' => $this->whenExists($this->description),
-            'vendor'      => new StoreVendorResource($this->whenLoaded('vendorProfile'))
+            'id'                    => $this->id,
+            'name'                  => $this->name,
+            'slug'                  => $this->slug,
+            'logo'                  => $this->logo_url,
+            'image'                 => $this->whenExists($this->image),
+            'description'           => $this->whenExists($this->description),
+            'active_branches_count' => $this->active_branches_count,
+            'vendor'                => new StoreVendorResource($this->whenLoaded('vendorProfile')),
+            'branches_preview'      => StoreBranchListResource::collection($this->whenLoaded('activeBranches')),
         ];
     }
 }

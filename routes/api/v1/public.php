@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Public\BusinessCategoryController;
+use App\Http\Controllers\Api\V1\Public\StoreBranchController;
 use App\Http\Controllers\Api\V1\Public\StoreController;
 use Illuminate\Support\Facades\Route;
 

@@ -9,12 +9,11 @@ use App\Models\Store;
 
 class StoreController extends Controller
 {
-    public function index(string $slug)
+    public function index(BusinessCategory $businessCategory)
     {
-        $category = BusinessCategory::where('slug', $slug)->select('id')->firstOrFail();
-
-        $stores = $category->stores()
-            ->select('id', 'name', 'slug', 'logo')
+        $stores = $businessCategory->stores()
+            ->select('id', 'name', 'slug', 'image', 'logo', 'description')
+            ->useFilters()
             ->dynamicPaginate();
 
         return StoreResource::collection($stores);
@@ -22,7 +21,11 @@ class StoreController extends Controller
 
     public function show(BusinessCategory $businessCategory, Store $store)
     {
-        $store->load('vendorProfile:id,business_name,rating,total_orders,created_at');
+        $store->load([
+            'vendorProfile:id,business_name,rating,total_orders,created_at',
+            'activeBranches' => fn ($q) => $q->limit(3),
+        ])->loadCount('activeBranches');
+
         return new StoreResource($store);
     }
 }

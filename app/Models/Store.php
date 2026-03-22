@@ -61,6 +61,18 @@ class Store extends BaseModel
     }
 
     /**
+     * Get active branches for the store.
+     * Returns only active branches (using local scope `active`)
+     */
+    public function activeBranches(): HasMany
+    {
+        return $this->hasMany(StoreBranch::class)
+            ->select('id', 'store_id', 'name', 'city', 'area')
+            ->active()
+            ->latest();
+    }
+
+    /**
      * The store can has many products
      */
     public function products(): HasMany
