@@ -50,6 +50,10 @@ return Application::configure(basePath: dirname(__DIR__))
             Route::prefix('api/v1/customer')->middleware(['api', 'auth:sanctum', 'isCustomer'])
                 ->as('customer.')
                 ->group(base_path('routes/api/v1/customer/customer.php'));
+
+            Route::prefix('api/v1')->middleware(['api'])
+                ->as('public.')
+                ->group(base_path('routes/api/v1/public.php'));
         }
     )
     ->withMiddleware(function (Middleware $middleware): void {

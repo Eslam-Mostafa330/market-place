@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Store extends BaseModel
 {
@@ -101,20 +102,20 @@ class Store extends BaseModel
     /**
      * Accessor that can access the store image
      */
-    public function getImageUrlAttribute(): ?string 
+    protected function imageUrl(): Attribute
     {
-        if (! $this->image) return null;
-
-        return asset('storage/' . $this->image);
+        return Attribute::get(
+            fn () => $this->image ? asset('storage/' . $this->image) : null
+        );
     }
 
     /**
      * Accessor that can access the store logo
      */
-    public function getLogoUrlAttribute(): ?string 
+    protected function logoUrl(): Attribute
     {
-        if (! $this->logo) return null;
-
-        return asset('storage/' . $this->logo);
+        return Attribute::get(
+            fn () => $this->logo ? asset('storage/' . $this->logo) : null
+        );
     }
 }

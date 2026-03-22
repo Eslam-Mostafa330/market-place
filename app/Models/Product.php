@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Product extends BaseModel
 {
@@ -106,10 +107,10 @@ class Product extends BaseModel
     /**
      * Accessor that can access the article image
      */
-    public function getImageUrlAttribute(): ?string 
+    protected function imageUrl(): Attribute
     {
-        if (! $this->image) return null;
-
-        return asset('storage/' . $this->image);
+        return Attribute::get(
+            fn () => $this->image ? asset('storage/' . $this->image) : null
+        );
     }
 }
