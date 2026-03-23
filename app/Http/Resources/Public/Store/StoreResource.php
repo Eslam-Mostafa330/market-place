@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Public\Store;
 
+use App\Http\Resources\Public\StoreBranch\StoreBranchListResource;
 use App\Traits\IncludesAttributes;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -22,7 +23,7 @@ class StoreResource extends JsonResource
             'name'                  => $this->name,
             'slug'                  => $this->slug,
             'logo'                  => $this->logo_url,
-            'image'                 => $this->whenExists($this->image),
+            'image'                 => $this->whenExists($this->image_url),
             'description'           => $this->whenExists($this->description),
             'active_branches_count' => $this->active_branches_count,
             'vendor'                => new StoreVendorResource($this->whenLoaded('vendorProfile')),

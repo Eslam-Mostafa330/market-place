@@ -11,7 +11,9 @@ class BusinessCategoryController extends BaseApiController
 {
     public function __invoke(): AnonymousResourceCollection
     {
-        $businessCategories = BusinessCategory::select('id', 'name', 'slug', 'description', 'image')->get();
+        $businessCategories = BusinessCategory::select('id', 'name', 'slug', 'description', 'image')
+            ->orderBy('name', 'ASC')
+            ->get();
 
         return BusinessCategoryResource::collection($businessCategories);
     }

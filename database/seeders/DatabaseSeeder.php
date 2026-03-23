@@ -24,18 +24,18 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             AdminUserSeeder::class,
-            VendorUserSeeder::class,
-            CustomerUserSeeder::class,
-            RiderUserSeeder::class,
-            BusinessCategorySeeder::class,
-            ProductCategorySeeder::class,
-            VendorProfileSeeder::class,
-            RiderProfileSeeder::class,
-            CustomerProfileSeeder::class,
-            UserAddressSeeder::class,
-            StoreSeeder::class,
-            StoreBranchSeeder::class,
-            ProductSeeder::class,
+            // VendorUserSeeder::class,
+            // CustomerUserSeeder::class,
+            // RiderUserSeeder::class,
+            // BusinessCategorySeeder::class,
+            // ProductCategorySeeder::class,
+            // VendorProfileSeeder::class,
+            // RiderProfileSeeder::class,
+            // CustomerProfileSeeder::class,
+            // UserAddressSeeder::class,
+            // StoreSeeder::class,
+            // StoreBranchSeeder::class,
+            // ProductSeeder::class,
         ]);
     }
 }

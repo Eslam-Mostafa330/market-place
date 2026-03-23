@@ -12,7 +12,8 @@ class StoreController extends Controller
     public function index(BusinessCategory $businessCategory)
     {
         $stores = $businessCategory->stores()
-            ->select('id', 'name', 'slug', 'image', 'logo', 'description')
+            ->select('id', 'name', 'slug', 'logo')
+            ->withCount('activeBranches')
             ->useFilters()
             ->dynamicPaginate();
 

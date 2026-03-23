@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 
 class Product extends BaseModel
 {
@@ -99,6 +101,18 @@ class Product extends BaseModel
     {
         return $this->belongsToMany(User::class, 'favorites', 'product_id', 'customer_id')
             ->withTimestamps();
+    }
+
+    /**** ************* ****/
+    /**** Local Scopes  ****/
+    /**** ************* ****/
+    /**
+     * To display the active products only
+     */
+    #[Scope]
+    protected function active(Builder $query): void
+    {
+        $query->where('status', DefineStatus::ACTIVE->value);
     }
 
     /****************************/

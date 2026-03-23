@@ -67,7 +67,7 @@ class Store extends BaseModel
     public function activeBranches(): HasMany
     {
         return $this->hasMany(StoreBranch::class)
-            ->select('id', 'store_id', 'name', 'city', 'area')
+            ->select('id', 'store_id', 'name', 'slug', 'city', 'area')
             ->active()
             ->latest();
     }
