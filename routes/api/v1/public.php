@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Public\BusinessCategoryController;
+use App\Http\Controllers\Api\V1\Public\FavoriteController;
 use App\Http\Controllers\Api\V1\Public\StoreBranchController;
 use App\Http\Controllers\Api\V1\Public\StoreController;
 use App\Http\Controllers\Api\V1\Public\StoreProductCategoryController;
@@ -12,7 +13,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('business-categories', BusinessCategoryController::class);
 
 # ----- Store Product Category Routes
-Route::get('stores/{store:slug}/product-categories', [StoreProductCategoryController::class, 'index']);
+Route::get('stores/{store:slug}/product-categories', StoreProductCategoryController::class);
 
 # ----- Store Routes
 Route::controller(StoreController::class)->prefix('business-categories/{businessCategory:slug}/stores')->group(function () {
@@ -31,3 +32,6 @@ Route::controller(StoreProductController::class)->prefix('stores/{store:slug}/pr
     Route::get('/', 'index');
     Route::get('/{product:slug}', 'show');
 });
+
+# ----- Favorite Routes
+Route::post('favorites/toggle', [FavoriteController::class, 'toggle'])->middleware(['auth:sanctum', 'isCustomer']);

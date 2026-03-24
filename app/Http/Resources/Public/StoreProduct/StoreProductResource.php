@@ -24,6 +24,7 @@ class StoreProductResource extends JsonResource
             'quantity'         => $this->quantity,
             'preparation_time' => $this->preparation_time,
             'is_featured'      => $this->is_featured,
+            'is_favorite'      => (bool) ($this->is_favorite ?? false),
             'description'      => $this->description,
             'related_products' => StoreProductListResource::collection($this->whenLoaded('relatedProducts')),
         ];

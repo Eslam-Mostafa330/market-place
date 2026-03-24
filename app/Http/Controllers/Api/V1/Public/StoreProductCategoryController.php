@@ -16,7 +16,7 @@ class StoreProductCategoryController extends BaseApiController
      * contains its children categories as a nested "children" relation.
      * Returns a flattened list of parent categories, each with its related children.
      */
-    public function index(Store $store)
+    public function __invoke(Store $store)
     {
         $categories = ProductCategory::select('id', 'name', 'slug', 'parent_id')
             ->whereIn('id', $store->products()->select('product_category_id'))

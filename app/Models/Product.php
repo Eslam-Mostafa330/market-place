@@ -115,6 +115,20 @@ class Product extends BaseModel
         $query->where('status', DefineStatus::ACTIVE->value);
     }
 
+    /**
+     * Appends an `is_favorite` boolean to each product row indicating
+     * whether the given user has favourited it.
+     */
+    #[Scope]
+    protected function withFavoriteStatus(Builder $query, mixed $user): void
+    {
+        if ($user) {
+            $query->withExists([
+                'favoredBy as is_favorite' => fn ($q) => $q->where('favorites.customer_id', $user->id),
+            ]);
+        }
+    }
+
     /****************************/
     /***** Accessor Methods *****/
     /****************************/
