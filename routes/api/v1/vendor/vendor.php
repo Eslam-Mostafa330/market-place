@@ -29,7 +29,7 @@ Route::get('business-categories', BusinessCategoryController::class);
 # ----- Routes of the vendor that should be verified ----- #
 Route::middleware('vendor.verified')->group(function () {
     # ----- Store Routes
-    Route::apiResource('stores', StoreController::class);
+    Route::apiResource('stores', StoreController::class)->except('show');
 
     # ----- Store Branch Routes
     Route::apiResource('stores.branches', StoreBranchController::class)->scoped();

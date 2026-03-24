@@ -43,7 +43,7 @@ class BusinessCategory extends BaseModel
     /***** Accessor Methods *****/
     /****************************/
     /**
-     * Accessor that can access the article image
+     * Accessor that can access the business category image
      */
     protected function imageUrl(): Attribute
     {

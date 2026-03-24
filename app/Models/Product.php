@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class Product extends BaseModel
 {
@@ -119,12 +120,25 @@ class Product extends BaseModel
      * Appends an `is_favorite` boolean to each product row indicating
      * whether the given user has favourited it.
      */
+    // #[Scope]
+    // protected function withFavoriteStatus(Builder $query, mixed $user): void
+    // {
+    //     if ($user) {
+    //         $query->withExists([
+    //             'favoredBy as is_favorite' => fn ($q) => $q->where('favorites.customer_id', $user->id),
+    //         ]);
+    //     }
+    // }
+
     #[Scope]
     protected function withFavoriteStatus(Builder $query, mixed $user): void
     {
         if ($user) {
-            $query->withExists([
-                'favoredBy as is_favorite' => fn ($q) => $q->where('favorites.customer_id', $user->id),
+            $query->addSelect([
+                'is_favorite' => DB::table('favorites')
+                    ->whereColumn('favorites.product_id', 'products.id')
+                    ->where('favorites.customer_id', $user->id)
+                    ->selectRaw('exists (select 1)')
             ]);
         }
     }
@@ -133,12 +147,35 @@ class Product extends BaseModel
     /***** Accessor Methods *****/
     /****************************/
     /**
-     * Accessor that can access the article image
+     * Accessor that can access the product image
      */
     protected function imageUrl(): Attribute
     {
         return Attribute::get(
             fn () => $this->image ? asset('storage/' . $this->image) : null
         );
+    }
+
+    /****************************/
+    /****** Helper Methods ******/
+    /****************************/
+    /**
+     * Load the `is_favorite` attribute for this product.
+     *
+     * Sets the attribute to true if the given customer has favorited this product,
+     * or false if no customer is provided (e.g. guest or non-customer account).
+     *
+     * @param  \App\Models\User|null  $customer
+     * @return static
+     */
+    public function loadFavoriteStatus(?User $customer): static
+    {
+        $this->setAttribute('is_favorite', $customer && DB::table('favorites')
+            ->where('product_id', $this->id)
+            ->where('customer_id', $customer->id)
+            ->exists()
+        );
+
+        return $this;
     }
 }

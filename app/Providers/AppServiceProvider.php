@@ -6,9 +6,11 @@ use App\Models\BusinessCategory;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\Sanctum;
 use App\Models\PersonalAccessToken;
+use App\Models\Store;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Observers\BusinessCategoryObserver;
+use App\Observers\StoreObserver;
 use App\Observers\UserAddressObserver;
 use App\Observers\UserObserver;
 use Illuminate\Database\Eloquent\Model;
@@ -36,5 +38,6 @@ class AppServiceProvider extends ServiceProvider
         User::observe(UserObserver::class);
         UserAddress::observe(UserAddressObserver::class);
         BusinessCategory::observe(BusinessCategoryObserver::class);
+        Store::observe(StoreObserver::class);
     }
 }

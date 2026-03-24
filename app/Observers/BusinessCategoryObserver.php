@@ -15,6 +15,9 @@ class BusinessCategoryObserver
         //
     }
 
+    /**
+     * Handle the BusinessCategory "updating" event.
+     */
     public function updating(BusinessCategory $businessCategory): void
     {
         $this->clearCache($businessCategory);
