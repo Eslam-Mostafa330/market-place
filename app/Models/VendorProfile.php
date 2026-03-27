@@ -6,6 +6,7 @@ use App\Enums\VendorVerificationStatus;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class VendorProfile extends BaseModel
 {
@@ -59,6 +60,14 @@ class VendorProfile extends BaseModel
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the store associated with this vendor profile.
+     */
+    public function store(): HasOne
+    {
+        return $this->hasOne(Store::class, 'vendor_profile_id');
     }
 
     /**** ************* ****/

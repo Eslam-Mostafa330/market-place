@@ -16,6 +16,7 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class User extends BaseAuthenticatableModel
 {
@@ -131,6 +132,14 @@ class User extends BaseAuthenticatableModel
     {
         return $this->belongsToMany(Product::class, 'favorites', 'customer_id', 'product_id')
             ->withTimestamps();
+    }
+
+    /**
+     * Get the store owned by this vendor user.
+     */
+    public function store(): HasOneThrough
+    {
+        return $this->hasOneThrough(Store::class, VendorProfile::class, 'user_id', 'vendor_profile_id');
     }
 
     /**** ************* ****/

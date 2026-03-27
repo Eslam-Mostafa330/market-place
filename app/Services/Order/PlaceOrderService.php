@@ -19,22 +19,29 @@ class PlaceOrderService
     public function __construct(private readonly OrderPricingCalculatorService $calculator) {}
 
     /** #### Step one (entry point) ####
-     * Run the full order placement pipeline.
+     * Handle the full order placement pipeline.
      *
-     * Throws InvalidArgumentException on any business rule failure.
+     * This method orchestrates the order process by:
+     * - Validating the incoming request data
+     * - Executing all critical operations inside a database transaction
+     * - Locking product rows to ensure stock consistency
+     * - Calculating pricing and persisting the order
      *
-     * @param  array  $data  Validated data from PlaceOrderRequest
-     * @return Order         The newly created order with items relation loaded
+     * @param array $data Validated request data
+     *
+     * @return Order The newly created order
      */
     public function handle(array $data): Order
     {
         ['branch' => $branch, 'address' => $address, 'coupon' => $coupon] = $this->validateOrder($data);
 
-        $items = $this->resolveItems($data['items'], $branch);
+        return DB::transaction(function () use ($data, $branch, $address, $coupon) {
+            $items = $this->resolveItems($data['items'], $branch);
 
-        $pricing = $this->calculator->calculate($items, $branch, (float) $branch->store->commission_rate, $coupon);
+            $pricing = $this->calculator->calculate($items, $branch, (float) $branch->store->commission_rate, $coupon);
 
-        return $this->createOrder($data, $branch, $address, $coupon, $items, $pricing);
+            return $this->persistOrder($data, $branch, $address, $coupon, $items, $pricing);
+        });
     }
 
     /** #### Step one (business rule validation) ####
@@ -103,16 +110,23 @@ class PlaceOrderService
     }
 
     /** #### Step two (resolve items) ####
-     * Load all products, validate each, and build item rows.
+     * Resolve and prepare order items with row-level locking.
      *
-     * Locks the price at order time — if the vendor changes the price
-     * anytime, this order still reflects what the customer paid.
+     * Retrieves all requested products and locks their rows
+     * using a "FOR UPDATE" query to prevent concurrent modifications.
+     * This ensures stock consistency and prevents overselling when multiple
+     * customers attempt to purchase the same product simultaneously.
+     * 
+     * @param array       $rawItems List of raw items (product_id, quantity)
+     * @param StoreBranch $branch   Store branch associated with the order
      *
      * @throws \InvalidArgumentException
+     * 
+     * @return array Resolved and validated order items
      */
     private function resolveItems(array $rawItems, StoreBranch $branch): array
     {
-        $products = Product::whereIn('id', array_column($rawItems, 'product_id'))->get()->keyBy('id');
+        $products = Product::whereIn('id', array_column($rawItems, 'product_id'))->lockForUpdate()->get()->keyBy('id');
 
         return array_map(function ($raw) use ($products, $branch) {
             $product = $products->get($raw['product_id']) ?? throw new \InvalidArgumentException('One or more products were not found.');
@@ -156,45 +170,42 @@ class PlaceOrderService
 
     /** #### Step three (the calculations that was handled by OrderPricingCalculatorService) ####
      *  #### Step four (persist order) ####
-     * Persist the order and all related data within a database transaction.
+     * Persist the order and all related data to the database.
      * 
      * Responsibilities:
-     * - Insert the order record with full snapshot data
-     * - Insert associated order items (bulk operation)
-     * - Decrement product stock quantities
-     * - Decrement coupon usage count (if applicable)
-     * 
-     *  Ensures data consistency by executing all operations atomically.
+     * - Creating the order record with full snapshot data
+     * - Inserting order items in bulk
+     * - Decrementing product stock quantities
+     * - Updating coupon usage count (if applicable)
+     *
+     * All operations are part of a single transaction managed by the caller.
      *
      * @param array        $data     Validated request data
      * @param StoreBranch  $branch   Store branch associated with the order
      * @param UserAddress  $address  Selected delivery address
      * @param Coupon|null  $coupon   Applied coupon (if any)
-     * @param array        $items    Prepared order items
+     * @param array        $items    Resolved order items
      * @param array        $pricing  Calculated pricing breakdown
      *
-     * @return Order The newly created order instance
+     * @return Order The persisted order instance with items relation set
      */
-    private function createOrder(array $data, StoreBranch $branch, UserAddress $address, ?Coupon $coupon, array $items, array $pricing): Order
+    private function persistOrder(array $data, StoreBranch $branch, UserAddress $address, ?Coupon $coupon, array $items, array $pricing): Order 
     {
-        return DB::transaction(function () use ($data, $branch, $address, $coupon, $items, $pricing) {
+        $order = Order::create($this->buildOrderAttributes($data, $branch, $address, $coupon, $pricing));
 
-            $order = Order::create($this->buildOrderAttributes($data, $branch, $address, $coupon, $pricing));
+        $itemRows = $this->buildItemRows($order->id, $items);
 
-            $itemRows = $this->buildItemRows($order->id, $items);
+        OrderItem::insert($itemRows);
 
-            OrderItem::insert($itemRows);
+        $this->decrementStock($items);
 
-            $this->decrementStock($items);
+        if ($coupon) {
+            $coupon->increment('used_count');
+        }
 
-            if ($coupon) {
-                $coupon->increment('used_count');
-            }
+        $order->setRelation('items', collect($itemRows)->map(fn ($row) => (new OrderItem())->forceFill($row)));
 
-            $order->setRelation('items', collect($itemRows)->map(fn ($row) => (new OrderItem())->forceFill($row)));
-
-            return $order;
-        });
+        return $order;
     }
 
     /**
