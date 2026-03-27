@@ -5,12 +5,14 @@ namespace App\Enums;
 enum OrderStatus: int
 {
     case PENDING = 1;
-    case CONFIRMED = 2;
+    case ACCEPTED = 2;
     case PREPARING = 3;
-    case PICKED = 4;
-    case DELIVERED = 5;
-    case CANCELLED = 6;
-    case REFUNDED = 7;
+    case WAITING_RIDER = 4;
+    case RIDER_ASSIGNED = 5;
+    case PICKED_UP = 6;
+    case IN_TRANSIT = 7;
+    case DELIVERED = 8;
+    case CANCELLED = 9;
 
     /**
      * Get the default order status (PENDING)

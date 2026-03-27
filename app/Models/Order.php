@@ -6,6 +6,7 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Order extends BaseModel
 {
@@ -30,6 +31,21 @@ class Order extends BaseModel
         'order_status',
         'payment_status',
         'delivered_at',
+        'commission_rate',
+        'commission_amount',
+        'vendor_earnings',
+        'rider_earnings',
+        'delivery_address_line',
+        'delivery_city',
+        'delivery_state',
+        'delivery_country',
+        'delivery_postal_code',
+        'delivery_notes',
+        'delivery_phone',
+        'delivery_latitude',
+        'delivery_longitude',
+        'rider_assignment_attempts',
+        'rider_search_started_at',
     ];
 
     /**
@@ -40,21 +56,27 @@ class Order extends BaseModel
     protected function casts(): array
     {
         return [
-            'payment_method' => PaymentMethod::class,
-            'payment_status' => PaymentStatus::class,
-            'order_status'   => OrderStatus::class,
-            'delivery_fee'   => 'decimal:2',
-            'delivered_at'   => 'datetime',
-            'discount'       => 'decimal:2',
-            'subtotal'       => 'decimal:2',
-            'total'          => 'decimal:2',
+            'rider_search_started_at' => 'datetime',
+            'delivery_longitude'      => 'decimal:8',
+            'delivery_latitude'       => 'decimal:8',
+            'commission_amount'       => 'decimal:2',
+            'commission_rate'         => 'decimal:2',
+            'vendor_earnings'         => 'decimal:2',
+            'payment_method'          => PaymentMethod::class,
+            'rider_earnings'          => 'decimal:2',
+            'payment_status'          => PaymentStatus::class,
+            'order_status'            => OrderStatus::class,
+            'delivery_fee'            => 'decimal:2',
+            'delivered_at'            => 'datetime',
+            'discount'                => 'decimal:2',
+            'subtotal'                => 'decimal:2',
+            'total'                   => 'decimal:2',
         ];
     }
 
     /**** ************* ****/
     /**** Relationships ****/
     /**** ************* ****/
-
     /**
      * The order can be placed by a customer
      */
@@ -93,5 +115,13 @@ class Order extends BaseModel
     public function coupon(): BelongsTo
     {
         return $this->belongsTo(Coupon::class);
+    }
+
+    /**
+     * The order can have many items
+     */
+    public function items(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
     }
 }

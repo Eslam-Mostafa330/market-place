@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Customer\AddressController;
 use App\Http\Controllers\Api\V1\Customer\FavoriteController;
+use App\Http\Controllers\Api\V1\Customer\OrderController;
 use App\Http\Controllers\Api\V1\Customer\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,3 +23,6 @@ Route::controller(FavoriteController::class)->prefix('favorites')->group(functio
     Route::get('/', 'index');
     Route::delete('/products/{product}', 'destroy');
 });
+
+# ----- Order Routes
+Route::post('orders', [OrderController::class, 'store']);
