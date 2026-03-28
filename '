@@ -1,0 +1,30 @@
+fix(orders): prevent stock race conditions and refactor order persistence
+
+- wrap order placement flow in database transaction
+- apply lockForUpdate() when loading products (SELECT ... FOR UPDATE)
+- ensure stock consistency under concurrent requests
+- prevent overselling for low-stock products
+
+- refactor order persistence:
+  - rename createOrder() to persistOrder()
+  - move transaction boundary to service handler
+  - remove nested transaction for cleaner separation
+
+- fix incorrect OrderPricingCalculatorService class reference
+
+- add relationships:
+  - User::store() via hasOneThrough
+  - VendorProfile::store() via hasOne
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch main
+# Your branch is up to date with 'origin/main'.
+#
+# Changes to be committed:
+#	modified:   app/Models/User.php
+#	modified:   app/Models/VendorProfile.php
+#	renamed:    app/Services/Order/OrderPricingCalculator.php -> app/Services/Order/OrderPricingCalculatorService.php
+#	modified:   app/Services/Order/PlaceOrderService.php
+#

@@ -11,10 +11,11 @@ class OrderController extends BaseApiController
 {
     public function __construct(private readonly PlaceOrderService $placeOrderService) {}
 
-    public function store(PlaceOrderRequest $request)
+    public function placeOrder(PlaceOrderRequest $request)
     {
         $orderData = $request->validated();
         $order = $this->placeOrderService->handle($orderData);
+        $order->setRelation('delivery', $order);
         return $this->apiResponseStored(new OrderResource($order->load('items')));
     }
 }

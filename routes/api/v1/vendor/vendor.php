@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Vendor\BusinessCategoryController;
 use App\Http\Controllers\Api\V1\Vendor\BusinessProfileController;
+use App\Http\Controllers\Api\V1\Vendor\OrderController;
 use App\Http\Controllers\Api\V1\Vendor\ProfileController;
 use App\Http\Controllers\Api\V1\Vendor\StoreBranchController;
 use App\Http\Controllers\Api\V1\Vendor\StoreController;
@@ -41,4 +42,11 @@ Route::middleware('vendor.verified')->group(function () {
     # ----- Store Product Routes
     Route::apiResource('stores.products', StoreProductController::class)->scoped();
     Route::patch('stores/{store}/products/{product}/toggle-status', [StoreProductController::class, 'toggleStatus'])->scopeBindings();
+
+    # ----- Order Routes
+    Route::controller(OrderController::class)->prefix('orders')->group(function () {
+        Route::get('/', 'index');
+        Route::get('/{order}', 'show');
+        Route::post('/{order}/accept', 'accept');
+    });
 });
