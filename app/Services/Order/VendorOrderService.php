@@ -4,6 +4,7 @@ namespace App\Services\Order;
 
 use App\Enums\OrderStatus;
 use App\Models\Order;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class VendorOrderService
 {
@@ -29,12 +30,12 @@ class VendorOrderService
      * Only PENDING orders can be accepted — anything else means
      * the order has already moved forward or been cancelled.
      *
-     * @throws \InvalidArgumentException
+     * @throws \Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException
      */
     private function validateStatus(Order $order): void
     {
         if ($order->order_status !== OrderStatus::PENDING) {
-            throw new \InvalidArgumentException(__('vendors.accept_only_pending_orders'));
+            throw new UnprocessableEntityHttpException(__('vendors.accept_only_pending_orders'));
         }
     }
 }

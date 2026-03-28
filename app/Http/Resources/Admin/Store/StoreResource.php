@@ -19,6 +19,7 @@ class StoreResource extends JsonResource
             'id'                => $this->id,
             'name'              => $this->name,
             'description'       => $this->description,
+            'commission_rate'   => $this->commission_rate,
             'logo'              => $this->logo_url,
             'image'             => $this->image_url,
             'vendor_name'       => $this->vendorProfile?->vendor_name,

@@ -49,6 +49,7 @@ Route::apiResource('product-categories', StoreProductCategoryController::class)-
 
 # ----- Store Routes
 Route::apiResource('stores', StoreController::class)->only('index', 'destroy');
+Route::patch('stores/{store}/commission', [StoreController::class, 'updateCommission']);
 
 # ----- Store Branches Routes
 Route::apiResource('stores.branches', StoreBranchController::class)->except('update', 'store')->scoped();

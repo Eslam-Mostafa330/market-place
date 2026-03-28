@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Requests\Admin\Store\UpdateCommissionRateRequest;
+use App\Http\Resources\Admin\Store\CommissionRateResource;
 use App\Http\Resources\Admin\Store\StoreResource;
 use App\Models\Store;
 use App\Traits\MediaHandler;
@@ -13,7 +15,7 @@ class StoreController extends BaseApiController
 {
     public function index(): AnonymousResourceCollection
     {
-        $stores = Store::select('id', 'business_category_id', 'vendor_profile_id', 'name', 'description', 'logo', 'image')
+        $stores = Store::select('id', 'business_category_id', 'vendor_profile_id', 'name', 'description', 'commission_rate', 'logo', 'image')
             ->with([
                 'businessCategory:id,name',
                 'vendorProfile.user:id,name',
@@ -23,6 +25,13 @@ class StoreController extends BaseApiController
             ->dynamicPaginate();
 
         return StoreResource::collection($stores);
+    }
+
+    public function updateCommission(UpdateCommissionRateRequest $request, Store $store): JsonResponse
+    {
+        $data = $request->validated();
+        $store->update(['commission_rate' => $data['commission_rate']]);
+        return $this->apiResponseUpdated(new CommissionRateResource($store));
     }
 
     public function destroy(Store $store): JsonResponse

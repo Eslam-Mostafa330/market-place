@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Vendor;
 
+use App\Enums\OrderStatus;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Controllers\Api\V1\Vendor\Concerns\VendorOrderStoreAuthorization;
 use App\Http\Resources\Vendor\Order\OrderListResource;
