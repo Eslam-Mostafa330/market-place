@@ -10,10 +10,13 @@ class VendorOrderService
 {
     /**
      * Accept a pending order.
+     *
+     * Validates that The order is still in pending status
+     * Then moves the order to accepted status.
      */
     public function acceptOrder(Order $order): Order
     {
-        $this->validateStatus($order);
+        $this->validateOrderStatus($order, OrderStatus::PENDING, __('vendors.ensure_pending_orders'));
 
         $order->update(['order_status' => OrderStatus::ACCEPTED]);
 
@@ -21,17 +24,48 @@ class VendorOrderService
     }
 
     /**
-     * Verify the order is in a status that can be accepted.
+     * Prepare the accepted order.
+     * 
+     * Validates that The order is still in accepted status
+     * Then Moves order from accepted to preparing.
+     */
+    public function prepareOrder(Order $order): Order
+    {
+        $this->validateOrderStatus($order, OrderStatus::ACCEPTED, __('vendors.ensure_accepted_orders'));
+
+        $order->update(['order_status' => OrderStatus::PREPARING]);
+
+        return $order;
+    }
+
+    /**
+     * Mark the order as ready for pickup.
      *
-     * Only PENDING orders can be accepted — anything else means
-     * the order has already moved forward or been cancelled.
+     * Validates that The order is still in preparing status
+     * Then moves the order to waiting rider status and sets the rider search start time.
+     * The trigger point for the rider search job.
+     */
+    public function markReady(Order $order): Order
+    {
+        $this->validateOrderStatus($order, OrderStatus::PREPARING, __('vendors.ensure_preparing_orders'));
+
+        $order->update([
+            'order_status' => OrderStatus::WAITING_RIDER,
+            'rider_search_started_at' => now(),
+        ]);
+
+        return $order;
+    }
+
+    /**
+     * Verify the order status for all order transitions.
      *
      * @throws \Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException
      */
-    private function validateStatus(Order $order): void
+    private function validateOrderStatus(Order $order, OrderStatus $expected, string $message): void
     {
-        if ($order->order_status !== OrderStatus::PENDING) {
-            throw new UnprocessableEntityHttpException(__('vendors.accept_only_pending_orders'));
+        if ($order->order_status !== $expected) {
+            throw new UnprocessableEntityHttpException($message);
         }
     }
 }

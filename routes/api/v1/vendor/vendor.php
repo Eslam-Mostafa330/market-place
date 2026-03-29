@@ -48,5 +48,7 @@ Route::middleware('vendor.verified')->group(function () {
         Route::get('/', 'index');
         Route::get('/{order}', 'show');
         Route::post('/{order}/accept', 'accept');
+        Route::post('/{order}/prepare', 'prepare');
+        Route::post('/{order}/ready', 'ready');
     });
 });

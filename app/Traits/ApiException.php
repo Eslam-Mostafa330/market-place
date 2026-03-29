@@ -11,6 +11,7 @@ use InvalidArgumentException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 trait ApiException
 {
@@ -18,45 +19,60 @@ trait ApiException
 
     public static function apiException($e)
     {
+        /** Validation (e.g. request data) */
         if ($e instanceof ValidationException) {
-            $errors = $e->errors();
-            return ApiResponse::apiResponse($errors, __('http-statuses.422'), 422);
+            return ApiResponse::apiResponse($e->errors(), __('http-statuses.422'), 422);
         }
+
+        /** Business logic (e.g. invalid order state) */
+        if ($e instanceof UnprocessableEntityHttpException) {
+            return ApiResponse::apiResponse(null, $e->getMessage(), 422);
+        }
+
+        /** Bad request */
         if ($e instanceof InvalidArgumentException) {
             return ApiResponse::apiResponse(null, $e->getMessage(), 400);
         }
-        if ($e instanceof NotFoundHttpException) {
+
+        /** Not found */
+        if ($e instanceof ModelNotFoundException || $e instanceof NotFoundHttpException) {
             return ApiResponse::apiResponse(null, __('http-statuses.404'), 404);
         }
-        if ($e instanceof ModelNotFoundException) {
-            return ApiResponse::apiResponse(null, __('http-statuses.404'), 404);
-        }
-        if ($e instanceof HttpException) {
-            return ApiResponse::apiResponse(null, $e->getMessage(), $e->getStatusCode());
-        }
-        if (config('app.env') == 'production') {
-            if ($e instanceof QueryException) {
-                return ApiResponse::apiResponse(null, __('http-statuses.500'), 500);
-            }
-        }
-        if ($e instanceof AuthorizationException) {
-            return ApiResponse::apiResponse(null, __('http-statuses.401'), 401);
-        }
-        if ($e instanceof AccessDeniedHttpException) {
-            return ApiResponse::apiResponse(null, __('http-statuses.401'), 401);
-        }
+
+        /** Unauthenticated */
         if ($e instanceof AuthenticationException) {
             return ApiResponse::apiResponse(null, __('http-statuses.401'), 401);
         }
-        if ($e instanceof HttpException && $e->getStatusCode() === 403) {
-            return ApiResponse::apiResponse(null, __('main.not_verified'), 403);
+
+        /** Unauthorized / forbidden */
+        if ($e instanceof AuthorizationException || $e instanceof AccessDeniedHttpException) {
+            return ApiResponse::apiResponse(null, __('http-statuses.403'), 403);
         }
+
+        /** Database errors */
+        if ($e instanceof QueryException) {
+            return ApiResponse::apiResponse(null, config('app.debug') ? $e->getMessage() : __('http-statuses.500'), 500);
+        }
+
+        /** Predis / connection issues */
         if ($e instanceof \Predis\Connection\ConnectionException) {
             return ApiResponse::apiResponse(null, __('http-statuses.503'), 503);
         }
-        if ($e instanceof \Symfony\Component\Mailer\Exception\TransportException ||
-            $e instanceof \Symfony\Component\Mailer\Exception\TransportExceptionInterface) {
+
+        /** Mail transport issues */
+        if (
+            $e instanceof \Symfony\Component\Mailer\Exception\TransportException ||
+            $e instanceof \Symfony\Component\Mailer\Exception\TransportExceptionInterface
+        ) {
             return ApiResponse::apiResponse(null, __('http-statuses.503'), 503);
         }
+
+        /** Generic HTTP exceptions */
+        if ($e instanceof HttpException) {
+            return ApiResponse::apiResponse(null, $e->getMessage(), $e->getStatusCode());
+        }
+
+        /** Fallback */
+        return ApiResponse::apiResponse(null, config('app.debug') ? $e->getMessage() : __('http-statuses.500'), 500);
     }
 }

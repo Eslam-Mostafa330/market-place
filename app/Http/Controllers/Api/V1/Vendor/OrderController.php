@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Controllers\Api\V1\Vendor\Concerns\VendorOrderStoreAuthorization;
 use App\Http\Resources\Vendor\Order\OrderListResource;
 use App\Http\Resources\Vendor\Order\OrderResource;
+use App\Http\Resources\Vendor\Order\OrderStatusResource;
 use App\Models\Order;
 use App\Services\Order\VendorOrderService;
 use Illuminate\Http\JsonResponse;
@@ -22,6 +23,7 @@ class OrderController extends BaseApiController
         $orders = Order::select('id', 'store_id', 'store_branch_id', 'order_number', 'order_status', 'payment_status', 'total', 'created_at')
             ->where('store_id', auth()->user()->store?->id)
             ->with(['store:id,name', 'storeBranch:id,name'])
+            ->useFilters()
             ->latest()
             ->dynamicPaginate();
 
@@ -43,12 +45,32 @@ class OrderController extends BaseApiController
     }
 
     /**
-     * Accepts the pending order.
+     * Vendor accepts the pending order.
      */
     public function accept(Order $order): JsonResponse
     {
         $this->authorizeOrder($order);
         $acceptedOrder = $this->vendorOrderService->acceptOrder($order);
-        return $this->apiResponseUpdated(new OrderListResource($acceptedOrder));
+        return $this->apiResponseUpdated(new OrderStatusResource($acceptedOrder));
+    }
+
+    /**
+     * Vendor prepares the order.
+     */
+    public function prepare(Order $order): JsonResponse
+    {
+        $this->authorizeOrder($order);
+        $preparedOrder = $this->vendorOrderService->prepareOrder($order);
+        return $this->apiResponseUpdated(new OrderStatusResource($preparedOrder));
+    }
+
+    /**
+     * Vendor marks the order as ready for pickup.
+     */
+    public function ready(Order $order): JsonResponse
+    {
+        $this->authorizeOrder($order);
+        $readyOrder = $this->vendorOrderService->markReady($order);
+        return $this->apiResponseUpdated(new OrderStatusResource($readyOrder));
     }
 }
