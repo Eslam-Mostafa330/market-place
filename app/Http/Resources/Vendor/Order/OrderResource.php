@@ -25,7 +25,7 @@ class OrderResource extends JsonResource
             'delivery_fee'   => $this->delivery_fee,
             'discount'       => $this->discount,
             'total'          => $this->total,
-            'created_at'     => $this->created_at->format('d-m-y'),
+            'created_at'     => $this->created_at->format('d-m-Y'),
             'store'          => new OrderStoreResource($this->whenLoaded('store')),
             'store_branch'   => new OrderStoreBranchResource($this->whenLoaded('storeBranch')),
             'delivery'       => new OrderDeliveryResource($this->whenLoaded('delivery')),

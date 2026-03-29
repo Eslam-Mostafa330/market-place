@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers\Api\V1\Vendor;
 
-use App\Enums\OrderStatus;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Controllers\Api\V1\Vendor\Concerns\VendorOrderStoreAuthorization;
 use App\Http\Resources\Vendor\Order\OrderListResource;
 use App\Http\Resources\Vendor\Order\OrderResource;
 use App\Models\Order;
 use App\Services\Order\VendorOrderService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class OrderController extends BaseApiController
 {
@@ -16,7 +17,7 @@ class OrderController extends BaseApiController
 
     public function __construct(private readonly VendorOrderService $vendorOrderService) {}
 
-    public function index()
+    public function index(): AnonymousResourceCollection
     {
         $orders = Order::select('id', 'store_id', 'store_branch_id', 'order_number', 'order_status', 'payment_status', 'total', 'created_at')
             ->where('store_id', auth()->user()->store?->id)
@@ -27,7 +28,7 @@ class OrderController extends BaseApiController
         return OrderListResource::collection($orders);
     }
 
-    public function show(Order $order)
+    public function show(Order $order): JsonResponse
     {
         $this->authorizeOrder($order);
         
@@ -44,7 +45,7 @@ class OrderController extends BaseApiController
     /**
      * Accepts the pending order.
      */
-    public function accept(Order $order)
+    public function accept(Order $order): JsonResponse
     {
         $this->authorizeOrder($order);
         $acceptedOrder = $this->vendorOrderService->acceptOrder($order);

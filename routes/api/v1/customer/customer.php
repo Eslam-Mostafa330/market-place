@@ -25,4 +25,4 @@ Route::controller(FavoriteController::class)->prefix('favorites')->group(functio
 });
 
 # ----- Order Routes
-Route::post('orders', [OrderController::class, 'placeOrder']);
+Route::apiResource('orders', OrderController::class)->except('update', 'destroy');

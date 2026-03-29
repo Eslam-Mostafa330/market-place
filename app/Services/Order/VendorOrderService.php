@@ -10,10 +10,6 @@ class VendorOrderService
 {
     /**
      * Accept a pending order.
-     *
-     * Validates that The order is still in pending status
-     *
-     * @throws \InvalidArgumentException
      */
     public function acceptOrder(Order $order): Order
     {

@@ -5,11 +5,17 @@ namespace App\Models;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
+use App\Filters\OrderFilters;
+use Essa\APIToolKit\Filters\Filterable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Order extends BaseModel
 {
+    use Filterable;
+    
+    protected string $default_filters = OrderFilters::class;
+
     /**
      * The attributes that are mass assignable.
      *
