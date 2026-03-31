@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Admin\AdminController;
 use App\Http\Controllers\Api\V1\Admin\BusinessCategoryController;
 use App\Http\Controllers\Api\V1\Admin\CustomerController;
+use App\Http\Controllers\Api\V1\Admin\NotificationController;
 use App\Http\Controllers\Api\V1\Admin\ProfileController;
 use App\Http\Controllers\Api\V1\Admin\RiderController;
 use App\Http\Controllers\Api\V1\Admin\StoreBranchController;
@@ -56,3 +57,11 @@ Route::apiResource('stores.branches', StoreBranchController::class)->except('upd
 
 # ----- Store Product Routes
 Route::apiResource('stores.products', StoreProductController::class)->except('update', 'store')->scoped();
+
+# ----- Notification Routes
+Route::controller(NotificationController::class)->prefix('notifications')->group(function () {
+    Route::get('/', 'index');
+    Route::get('/unread-count', 'unreadNotificationsCount');
+    Route::patch('/{notification}/read', 'markAsRead');
+    Route::patch('/read-all', 'markAllAsRead');
+});
