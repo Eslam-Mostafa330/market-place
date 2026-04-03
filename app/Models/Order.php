@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\CancellationReason;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
@@ -52,6 +53,9 @@ class Order extends BaseModel
         'delivery_longitude',
         'rider_assignment_attempts',
         'rider_search_started_at',
+        'cancelled_by',
+        'cancellation_reason',
+        'cancellation_note',
     ];
 
     /**
@@ -63,6 +67,7 @@ class Order extends BaseModel
     {
         return [
             'rider_search_started_at' => 'datetime',
+            'cancellation_reason'   => CancellationReason::class,
             'delivery_longitude'      => 'decimal:8',
             'delivery_latitude'       => 'decimal:8',
             'commission_amount'       => 'decimal:2',

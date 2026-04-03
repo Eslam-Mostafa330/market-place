@@ -7,6 +7,7 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Admin\RiderUser\CreateRiderRequest;
 use App\Http\Requests\Admin\RiderUser\UpdateRiderRequest;
+use App\Http\Resources\Admin\RiderUser\RiderUserListResource;
 use App\Http\Resources\Admin\RiderUser\RiderUserResource;
 use App\Http\Resources\Admin\RiderUser\ToggleRiderStatusResource;
 use App\Models\User;
@@ -20,17 +21,18 @@ class RiderController extends BaseApiController
     public function index(): AnonymousResourceCollection
     {
         $riders = User::select('id', 'name', 'email', 'phone', 'status')
+            ->with('riderProfile:id,user_id,rider_availability')
             ->rider()
             ->useFilters()
             ->latest()
             ->dynamicPaginate();
 
-        return RiderUserResource::collection($riders);
+        return RiderUserListResource::collection($riders);
     }
 
     public function show(User $rider): JsonResponse
     {
-        $rider->load('riderProfile:id,user_id,license_number,license_expiry,vehicle_type,vehicle_number,total_deliveries');
+        $rider->load('riderProfile:id,user_id,license_number,license_expiry,vehicle_type,vehicle_number,total_deliveries,rider_availability');
         return $this->apiResponse(new RiderUserResource($rider));
     }
 

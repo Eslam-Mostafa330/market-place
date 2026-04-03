@@ -4,6 +4,7 @@ namespace App\Services\Order;
 
 use App\Enums\OrderStatus;
 use App\Models\Order;
+use App\Jobs\Order\FindRiderJob;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class VendorOrderService
@@ -53,6 +54,8 @@ class VendorOrderService
             'order_status' => OrderStatus::WAITING_RIDER,
             'rider_search_started_at' => now(),
         ]);
+
+        FindRiderJob::dispatch($order);
 
         return $order;
     }

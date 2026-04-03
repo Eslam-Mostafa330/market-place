@@ -23,6 +23,17 @@ enum OrderStatus: int
     }
 
     /**
+     * Return non-cancellable statuses as integer values
+     */
+    public static function nonCancellableStatuses(): array
+    {
+        return [
+            self::DELIVERED,
+            self::CANCELLED,
+        ];
+    }
+
+    /**
      * Get all the possible values as an array
      */
     public static function values(): array

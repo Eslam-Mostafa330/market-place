@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Admin\AdminController;
 use App\Http\Controllers\Api\V1\Admin\BusinessCategoryController;
 use App\Http\Controllers\Api\V1\Admin\CustomerController;
 use App\Http\Controllers\Api\V1\Admin\NotificationController;
+use App\Http\Controllers\Api\V1\Admin\OrderController;
 use App\Http\Controllers\Api\V1\Admin\ProfileController;
 use App\Http\Controllers\Api\V1\Admin\RiderController;
 use App\Http\Controllers\Api\V1\Admin\StoreBranchController;
@@ -64,4 +65,11 @@ Route::controller(NotificationController::class)->prefix('notifications')->group
     Route::get('/unread-count', 'unreadNotificationsCount');
     Route::patch('/{notification}/read', 'markAsRead');
     Route::patch('/read-all', 'markAllAsRead');
+});
+
+# ----- Order Routes
+Route::controller(OrderController::class)->prefix('orders')->group(function () {
+    Route::patch('/{order}/assign-rider', 'assignRider');
+    Route::patch('/{order}/cancel', 'cancel');
+    Route::patch('/{order}/extend-search', 'extendSearch');
 });
