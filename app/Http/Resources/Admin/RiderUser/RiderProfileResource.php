@@ -15,12 +15,11 @@ class RiderProfileResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'license_number'     => $this->license_number,
-            'license_expiry'     => $this->license_expiry->format('d-m-Y'),
-            'vehicle_type'       => $this->vehicle_type,
-            'vehicle_number'     => $this->vehicle_number,
-            'total_deliveries'   => $this->total_deliveries,
-            'rider_availability' => $this->rider_availability,
+            'license_number'   => $this->license_number,
+            'license_expiry'   => $this->license_expiry->format('d-m-Y'),
+            'vehicle_type'     => $this->vehicle_type,
+            'vehicle_number'   => $this->vehicle_number,
+            'total_deliveries' => $this->total_deliveries,
         ];
     }
 }

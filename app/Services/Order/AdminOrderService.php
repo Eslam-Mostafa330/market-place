@@ -22,6 +22,8 @@ class AdminOrderService
     {
         $this->ensureOrderStatus($order, [OrderStatus::WAITING_RIDER], __('orders.not_waiting_status'));
 
+        $this->ensureAvailableRider($rider);
+
         $order->update([
             'rider_id'     => $rider->id,
             'order_status' => OrderStatus::RIDER_ASSIGNED,
@@ -89,6 +91,18 @@ class AdminOrderService
 
         if ($shouldBeIn ? ! $inArray : $inArray) {
             throw new UnprocessableEntityHttpException($message);
+        }
+    }
+
+    /**
+     * Ensure the given rider is available.
+     *
+     * @throws \Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException
+     */
+    private function ensureAvailableRider(User $rider): void
+    {
+        if (! $rider->isAvailableRider()) {
+            throw new UnprocessableEntityHttpException(__('riders.rider_not_available'));
         }
     }
 }

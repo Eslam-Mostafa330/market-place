@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Admin\AdminController;
+use App\Http\Controllers\Api\V1\Admin\AvailableRiderOrderController;
 use App\Http\Controllers\Api\V1\Admin\BusinessCategoryController;
 use App\Http\Controllers\Api\V1\Admin\CustomerController;
 use App\Http\Controllers\Api\V1\Admin\NotificationController;
@@ -40,6 +41,8 @@ Route::apiResource('customers', CustomerController::class)->except('show');
 Route::patch('customers/{customer}/toggle-status', [CustomerController::class, 'toggleStatus']);
 
 # ----- Rider Routes
+# Custom routes that could match a resource parameter (e.g. /riders/available) must come before apiResource.
+Route::get('riders/available', AvailableRiderOrderController::class);
 Route::apiResource('riders', RiderController::class);
 Route::patch('riders/{rider}/toggle-status', [RiderController::class, 'toggleStatus']);
 

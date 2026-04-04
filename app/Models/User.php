@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
 use App\Enums\DefineStatus;
+use App\Enums\RiderAvailability;
 use App\Enums\UserRole;
 use App\Filters\UserFilters;
 use Essa\APIToolKit\Filters\Filterable;
@@ -169,6 +170,19 @@ class User extends BaseAuthenticatableModel
         $query->where('role', UserRole::RIDER->value);
     }
 
+    /**
+     * Scope a query to only retrieves the available riders.
+     */
+    #[Scope]
+    protected function availableRiders(Builder $query): void
+    {
+        $query
+            ->join('rider_profiles', 'users.id', '=', 'rider_profiles.user_id')
+            ->where('users.role', UserRole::RIDER->value)
+            ->where('rider_profiles.rider_availability', RiderAvailability::AVAILABLE->value)
+            ->select('users.*');
+    }
+
     /****************************/
     /**** Role Check Methods ****/
     /****************************/
@@ -202,5 +216,17 @@ class User extends BaseAuthenticatableModel
     public function isRider(): bool
     {
         return $this->role === UserRole::RIDER;
+    }
+
+    /*******************************/
+    /*** Rider Business Methods ***/
+    /******************************/
+    /**
+     * Check if the user is an available rider.
+     */
+    public function isAvailableRider(): bool
+    {
+        return $this->isRider()
+            && $this->riderProfile?->rider_availability === RiderAvailability::AVAILABLE;
     }
 }

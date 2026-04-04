@@ -21,18 +21,17 @@ class RiderController extends BaseApiController
     public function index(): AnonymousResourceCollection
     {
         $riders = User::select('id', 'name', 'email', 'phone', 'status')
-            ->with('riderProfile:id,user_id,rider_availability')
             ->rider()
             ->useFilters()
             ->latest()
             ->dynamicPaginate();
 
-        return RiderUserListResource::collection($riders);
+        return RiderUserResource::collection($riders);
     }
 
     public function show(User $rider): JsonResponse
     {
-        $rider->load('riderProfile:id,user_id,license_number,license_expiry,vehicle_type,vehicle_number,total_deliveries,rider_availability');
+        $rider->load('riderProfile:id,user_id,license_number,license_expiry,vehicle_type,vehicle_number,total_deliveries');
         return $this->apiResponse(new RiderUserResource($rider));
     }
 
