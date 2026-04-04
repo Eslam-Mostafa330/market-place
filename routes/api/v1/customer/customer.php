@@ -26,3 +26,4 @@ Route::controller(FavoriteController::class)->prefix('favorites')->group(functio
 
 # ----- Order Routes
 Route::apiResource('orders', OrderController::class)->except('update', 'destroy');
+Route::patch('orders/{order}/cancel', [OrderController::class, 'cancel']);

@@ -13,8 +13,8 @@ use Illuminate\Http\Request;
 class AuthController extends BaseApiController
 {
     public function __construct(
-        private readonly AuthService       $authService,
-        private readonly TwoFactorService  $twoFactorService,
+        private readonly AuthService      $authService,
+        private readonly TwoFactorService $twoFactorService,
     ) {}
 
     /**
