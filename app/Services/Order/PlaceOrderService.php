@@ -10,9 +10,12 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\StoreBranch;
+use App\Models\User;
 use App\Models\UserAddress;
+use App\Notifications\Order\NewOrderNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class PlaceOrderService
 {
@@ -48,20 +51,20 @@ class PlaceOrderService
      * Validate branch, store, address, and coupon.
      * Returns resolved models so downstream steps
      *
-     * @throws \InvalidArgumentException
+     * @throws \Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException
      */
     private function validateOrder(array $data): array
     {
         $branch = StoreBranch::with('store')->findOrFail($data['store_branch_id']);
 
         if ($branch->status !== DefineStatus::ACTIVE) {
-            throw new \InvalidArgumentException(__('branches.branch_unavailable'));
+            throw new UnprocessableEntityHttpException('This branch is currently unavailable.');
         }
 
         $address = UserAddress::findOrFail($data['address_id']);
 
         if ($address->user_id !== auth()->id()) {
-            throw new \InvalidArgumentException(__('addresses.address_not_belong_to_user'));
+            throw new UnprocessableEntityHttpException('This address does not belong to your account.');
         }
 
         $coupon = isset($data['coupon_code'])
@@ -76,33 +79,33 @@ class PlaceOrderService
      *
      * Checks: active status, store scope, date range, per-user usage limit.
      *
-     * @throws \InvalidArgumentException
+     * @throws \Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException
      */
     private function validateCoupon(string $code, StoreBranch $branch): Coupon
     {
         $coupon = Coupon::where('code', $code)->firstOrFail();
 
         if ($coupon->status !== DefineStatus::ACTIVE) {
-            throw new \InvalidArgumentException(__('coupons.coupon_inactive'));
+            throw new UnprocessableEntityHttpException(__('coupons.coupon_inactive'));
         }
 
         if ($coupon->store_id !== null && $coupon->store_id !== $branch->store_id) {
-            throw new \InvalidArgumentException(__('coupons.coupon_not_valid_per_store'));
+            throw new UnprocessableEntityHttpException(__('coupons.coupon_not_valid_per_store'));
         }
 
         if ($coupon->starts_at && now()->lt($coupon->starts_at)) {
-            throw new \InvalidArgumentException(__('coupons.coupon_not_active_yet'));
+            throw new UnprocessableEntityHttpException(__('coupons.coupon_not_active_yet'));
         }
 
         if ($coupon->expires_at && now()->gt($coupon->expires_at)) {
-            throw new \InvalidArgumentException(__('coupons.coupon_expired'));
+            throw new UnprocessableEntityHttpException(__('coupons.coupon_expired'));
         }
 
         if ($coupon->usage_limit_per_user) {
             $usedByCustomer = Order::where('customer_id', auth()->id())->where('coupon_id', $coupon->id)->count();
 
             if ($usedByCustomer >= $coupon->usage_limit_per_user) {
-                throw new \InvalidArgumentException(__('coupons.coupon_usage_reached'));
+                throw new UnprocessableEntityHttpException(__('coupons.coupon_usage_reached'));
             }
         }
 
@@ -120,7 +123,7 @@ class PlaceOrderService
      * @param array       $rawItems List of raw items (product_id, quantity)
      * @param StoreBranch $branch   Store branch associated with the order
      *
-     * @throws \InvalidArgumentException
+     * @throws \Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException
      * 
      * @return array Resolved and validated order items
      */
@@ -129,7 +132,7 @@ class PlaceOrderService
         $products = Product::whereIn('id', array_column($rawItems, 'product_id'))->lockForUpdate()->get()->keyBy('id');
 
         return array_map(function ($raw) use ($products, $branch) {
-            $product = $products->get($raw['product_id']) ?? throw new \InvalidArgumentException('One or more products were not found.');
+            $product = $products->get($raw['product_id']) ?? throw new UnprocessableEntityHttpException('One or more products were not found.');
 
             $this->validateProduct($product, $raw['quantity'], $branch);
 
@@ -151,20 +154,20 @@ class PlaceOrderService
      *
      * Extracted from resolveItems().
      *
-     * @throws \InvalidArgumentException
+     * @throws \Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException
      */
     private function validateProduct(Product $product, int $quantity, StoreBranch $branch): void
     {
         if ($product->store_id !== $branch->store_id) {
-            throw new \InvalidArgumentException(__('products.not_belongs_to_store', ['name' => $product->name]));
+            throw new UnprocessableEntityHttpException(__('products.not_belongs_to_store', ['name' => $product->name]));
         }
 
         if ($product->status !== DefineStatus::ACTIVE) {
-            throw new \InvalidArgumentException(__('products.unavailable', ['name' => $product->name]));
+            throw new UnprocessableEntityHttpException(__('products.unavailable', ['name' => $product->name]));
         }
 
         if ($product->quantity < $quantity) {
-            throw new \InvalidArgumentException(__('products.not_enough_stock', ['name' => $product->name]));
+            throw new UnprocessableEntityHttpException(__('products.not_enough_stock', ['name' => $product->name]));
         }
     }
 
@@ -189,9 +192,14 @@ class PlaceOrderService
      *
      * @return Order The persisted order instance with items relation set
      */
-    private function persistOrder(array $data, StoreBranch $branch, UserAddress $address, ?Coupon $coupon, array $items, array $pricing): Order 
+    private function persistOrder(array $data, StoreBranch $branch, UserAddress $address, ?Coupon $coupon, array $items, array $pricing): Order
     {
-        $order = Order::create($this->buildOrderAttributes($data, $branch, $address, $coupon, $pricing));
+        $order = Order::create(
+            $this->buildOrderAttributes($data, $branch, $address, $coupon, $pricing)
+        );
+
+        $order->setRelation('storeBranch', $branch);
+        $order->setRelation('store', $branch->store);
 
         $itemRows = $this->buildItemRows($order->id, $items);
 
@@ -203,7 +211,17 @@ class PlaceOrderService
             $coupon->increment('used_count');
         }
 
-        $order->setRelation('items', collect($itemRows)->map(fn ($row) => (new OrderItem())->forceFill($row)));
+        $vendorUser = User::join('vendor_profiles', 'vendor_profiles.user_id', '=', 'users.id')
+            ->where('vendor_profiles.id', $branch->store->vendor_profile_id)
+            ->select('users.*')
+            ->first();
+
+        $vendorUser?->notify(new NewOrderNotification(order: $order, itemsCount: count($items), branchName: $branch->name, storeName: $branch->store->name));
+
+        $order->setRelation(
+            'items',
+            collect($itemRows)->map(fn ($row) => (new OrderItem())->forceFill($row))
+        );
 
         return $order;
     }

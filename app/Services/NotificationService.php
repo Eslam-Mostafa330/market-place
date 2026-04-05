@@ -10,20 +10,20 @@ class NotificationService
     /**
      * Get paginated notifications for the authenticated user.
      *
-     * @return \Illuminate\Contracts\Pagination\Paginator|\Illuminate\Contracts\Pagination\LengthAwarePaginator
+     * @return \Illuminate\Contracts\Pagination\CursorPaginator
      */
     public function getNotifications()
     {
         return $this->user()
             ->notifications()
             ->latest()
-            ->dynamicPaginate();
+            ->cursorPaginate();
     }
 
     /**
      * Mark a single notification as read by the authenticated user.
      *
-     * @throws \InvalidArgumentException
+     * @throws \Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException
      */
     public function markAsRead(DatabaseNotification $notification): DatabaseNotification
     {
