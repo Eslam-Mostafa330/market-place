@@ -39,7 +39,7 @@ class CustomerOrderService
     private function validateOwnership(Order $order): void
     {
         if ($order->customer_id !== auth()->id()) {
-            throw new UnprocessableEntityHttpException(__('orders.not_owned_by_customer'));
+            throw new UnprocessableEntityHttpException(__('customers.not_owned_by_you'));
         }
     }
 

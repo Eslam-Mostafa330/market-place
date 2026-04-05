@@ -61,7 +61,7 @@ class VendorOrderService
     }
 
     /**
-     * Verify the order status for all order transitions.
+     * Verify the order status for the order transitions.
      *
      * @throws \Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException
      */

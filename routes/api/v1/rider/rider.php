@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Rider\NotificationController;
+use App\Http\Controllers\Api\V1\Rider\OrderController;
 use App\Http\Controllers\Api\V1\Rider\ProfileController;
 use App\Http\Controllers\Api\V1\Rider\RiderLocationController;
 use Illuminate\Support\Facades\Route;
@@ -26,4 +27,11 @@ Route::controller(NotificationController::class)->prefix('notifications')->group
     Route::get('/unread-count', 'unreadNotificationsCount');
     Route::patch('/{notification}/read', 'markAsRead');
     Route::patch('/read-all', 'markAllAsRead');
+});
+
+# ----- Order Routes
+Route::controller(OrderController::class)->prefix('orders')->group(function () {
+    Route::patch('/{order}/reject', 'reject');
+    Route::patch('/{order}/pickup', 'pickup');
+    Route::patch('/{order}/deliver', 'deliver');
 });
