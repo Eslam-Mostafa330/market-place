@@ -29,7 +29,7 @@ class AdminOrderService
             'order_status' => OrderStatus::RIDER_ASSIGNED,
         ]);
 
-        $rider->notify(new RiderAssignedNotification($order));
+        $rider->notify(new RiderAssignedNotification($order, $order->storeBranch->slug));
 
         return $order;
     }

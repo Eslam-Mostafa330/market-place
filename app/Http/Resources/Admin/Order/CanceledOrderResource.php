@@ -16,7 +16,6 @@ class CanceledOrderResource extends JsonResource
     {
         return [
             'id'                  => $this->id,
-            'order_number'        => $this->order_number,
             'order_status'        => $this->order_status,
             'cancelled_by'        => $this->cancelled_by,
             'cancellation_reason' => $this->cancellation_reason,

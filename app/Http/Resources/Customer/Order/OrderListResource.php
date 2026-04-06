@@ -20,7 +20,7 @@ class OrderListResource extends JsonResource
             'order_status'      => $this->order_status,
             'payment_status'    => $this->payment_status,
             'total'             => $this->total,
-            'created_at'        => $this->created_at->format('d-m-Y'),
+            'created_at'        => $this->created_at,
             'store_name'        => $this->store->name,
             'store_branch_name' => $this->storeBranch->name,
         ];

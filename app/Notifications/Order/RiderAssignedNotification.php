@@ -13,7 +13,7 @@ class RiderAssignedNotification extends Notification
     /**
      * Create a new notification instance.
      */
-    public function __construct(private readonly Order $order)
+    public function __construct(private readonly Order $order, private readonly string $branchSlug)
     {
         //
     }
@@ -39,16 +39,16 @@ class RiderAssignedNotification extends Notification
     public function toDatabase(object $notifiable): array
     {
         return [
-            'order_id'         => $this->order->id,
-            'order_number'     => $this->order->order_number,
-            'store_branch_id'  => $this->order->store_branch_id,
-            'delivery_address' => $this->order->delivery_address_line,
-            'delivery_city'    => $this->order->delivery_city,
-            'delivery_lat'     => $this->order->delivery_latitude,
-            'delivery_lng'     => $this->order->delivery_longitude,
-            'delivery_phone'   => $this->order->delivery_phone,
-            'rider_earnings'   => $this->order->rider_earnings,
-            'message'          => 'You have been assigned a new delivery order.',
+            'order_id'          => $this->order->id,
+            'order_number'      => $this->order->order_number,
+            'store_branch_slug' => $this->branchSlug,
+            'delivery_address'  => $this->order->delivery_address_line,
+            'delivery_city'     => $this->order->delivery_city,
+            'delivery_lat'      => $this->order->delivery_latitude,
+            'delivery_lng'      => $this->order->delivery_longitude,
+            'delivery_phone'    => $this->order->delivery_phone,
+            'rider_earnings'    => $this->order->rider_earnings,
+            'message'           => 'You have been assigned a new delivery order.',
         ];
     }
 }

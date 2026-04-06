@@ -13,8 +13,6 @@ class CustomerOrderService
      *
      * Allowed from any status before DELIVERED.
      * Once delivered the order is final — no cancellation possible.
-     *
-     * @throws \InvalidArgumentException
      */
     public function cancelOrder(Order $order, int $reason, ?string $note = null): Order
     {

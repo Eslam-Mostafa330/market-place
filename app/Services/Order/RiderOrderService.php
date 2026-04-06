@@ -18,7 +18,6 @@ class RiderOrderService
      */
     public function rejectOrder(Order $order): Order
     {
-        $this->validateRiderOwnership($order);
         $this->validateStatus($order, OrderStatus::RIDER_ASSIGNED, __('riders.cannot_reject'));
 
         $order->update([
@@ -38,7 +37,6 @@ class RiderOrderService
      */
     public function pickupOrder(Order $order): Order
     {
-        $this->validateRiderOwnership($order);
         $this->validateStatus($order, OrderStatus::RIDER_ASSIGNED, __('riders.cannot_pickup'));
 
         $order->update(['order_status' => OrderStatus::PICKED_UP]);
@@ -54,7 +52,6 @@ class RiderOrderService
      */
     public function deliverOrder(Order $order): Order
     {
-        $this->validateRiderOwnership($order);
         $this->validateStatus($order, OrderStatus::PICKED_UP, __('riders.cannot_deliver'));
 
         $order->update([
@@ -64,20 +61,6 @@ class RiderOrderService
         ]);
 
         return $order;
-    }
-
-    /**
-     * Verify the authenticated rider is the one assigned to this order.
-     *
-     * Prevents a rider from acting on another rider's order.
-     *
-     * @throws \Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException
-     */
-    private function validateRiderOwnership(Order $order): void
-    {
-        if ($order->rider_id !== auth()->id()) {
-            throw new UnprocessableEntityHttpException(__('riders.not_belongs_to_you'));
-        }
     }
 
     /**

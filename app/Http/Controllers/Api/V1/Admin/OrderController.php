@@ -6,14 +6,41 @@ use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Admin\Order\AssignRiderRequest;
 use App\Http\Requests\Admin\Order\CancelOrderRequest;
 use App\Http\Resources\Admin\Order\CanceledOrderResource;
+use App\Http\Resources\Admin\Order\OrderListResource;
+use App\Http\Resources\Admin\Order\OrderMinimalResource;
 use App\Http\Resources\Admin\Order\OrderResource;
 use App\Models\Order;
 use App\Models\User;
 use App\Services\Order\AdminOrderService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class OrderController extends BaseApiController
 {
     public function __construct(private readonly AdminOrderService $adminOrderService) {}
+
+    public function index(): AnonymousResourceCollection
+    {
+        $orders = Order::select('id', 'store_id', 'store_branch_id', 'order_number', 'order_status', 'payment_status', 'total', 'created_at')
+            ->with(['store:id,name', 'storeBranch:id,name'])
+            ->useFilters()
+            ->latest()
+            ->dynamicPaginate();
+
+        return OrderListResource::collection($orders);
+    }
+
+    public function show(Order $order): JsonResponse
+    {
+        $order->load([
+            'store:id,name',
+            'storeBranch:id,name',
+            'items:id,order_id,product_id,product_name,quantity,unit_price,subtotal'
+        ]);
+
+        $order->setRelation('delivery', $order);
+        return $this->apiResponseShow(new OrderResource($order));
+    }
 
     /**
      * Manually assign a rider to an order.
@@ -23,8 +50,8 @@ class OrderController extends BaseApiController
         $data = $request->validated();
         $rider = User::findOrFail($data['rider_id']);
         $order = $this->adminOrderService->assignRider($order, $rider);
-        $order->setRelations(['rider' => $rider, 'delivery' => $order]);
-        return $this->apiResponseUpdated(new OrderResource($order));
+        $order->setRelations(['rider' => $rider]);
+        return $this->apiResponseUpdated(new OrderMinimalResource($order));
     }
 
     /**
@@ -34,7 +61,6 @@ class OrderController extends BaseApiController
     {
         $data = $request->validated();
         $order = $this->adminOrderService->cancelOrder($order, $data['note']);
-        $order->load('customer:id,name,email');
         return $this->apiResponse(new CanceledOrderResource($order));
     }
 
@@ -44,6 +70,6 @@ class OrderController extends BaseApiController
     public function extendSearch(Order $order)
     {
         $order = $this->adminOrderService->extendSearch($order);
-        return $this->apiResponse(new OrderResource($order));
+        return $this->apiResponse(new OrderMinimalResource($order));
     }
 }

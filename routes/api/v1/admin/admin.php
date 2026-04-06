@@ -72,6 +72,8 @@ Route::controller(NotificationController::class)->prefix('notifications')->group
 
 # ----- Order Routes
 Route::controller(OrderController::class)->prefix('orders')->group(function () {
+    Route::get('/', 'index');
+    Route::get('/{order}', 'show');
     Route::patch('/{order}/assign-rider', 'assignRider');
     Route::patch('/{order}/cancel', 'cancel');
     Route::patch('/{order}/extend-search', 'extendSearch');

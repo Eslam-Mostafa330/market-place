@@ -86,7 +86,7 @@ class FindRiderJob implements ShouldQueue
     /**
      * Assign the found rider to the order and notify them.
      *
-     * Updates order status to RIDER_ASSIGNED and sends a notification to the rider's account.
+     * Updates order status to rider assigned and sends a notification to the rider's account.
      */
     private function assignRider(Order $order, array $riderData): void
     {
@@ -95,11 +95,13 @@ class FindRiderJob implements ShouldQueue
             'order_status' => OrderStatus::RIDER_ASSIGNED,
         ]);
 
-        User::find($riderData['user_id']) ?->notify(new RiderAssignedNotification($order));
+        $branchSlug = $order->storeBranch->slug;
+
+        User::find($riderData['user_id']) ?->notify(new RiderAssignedNotification($order, $branchSlug));
     }
 
     /**
-     * No rider found after all attempts — escalate to admin.
+     * No rider found after all attempts then escalate to admin.
      *
      * Order not canceled automatically, instead admins are notified to intervene manually (assign a rider, extend search, or cancel).
      */
