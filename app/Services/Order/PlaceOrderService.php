@@ -58,13 +58,13 @@ class PlaceOrderService
         $branch = StoreBranch::with('store')->findOrFail($data['store_branch_id']);
 
         if ($branch->status !== DefineStatus::ACTIVE) {
-            throw new UnprocessableEntityHttpException('This branch is currently unavailable.');
+            throw new UnprocessableEntityHttpException(__('orders.branch_unavailable'));
         }
 
         $address = UserAddress::findOrFail($data['address_id']);
 
         if ($address->user_id !== auth()->id()) {
-            throw new UnprocessableEntityHttpException('This address does not belong to your account.');
+            throw new UnprocessableEntityHttpException(__('orders.address_not_owned'));
         }
 
         $coupon = isset($data['coupon_code'])
@@ -86,26 +86,26 @@ class PlaceOrderService
         $coupon = Coupon::where('code', $code)->firstOrFail();
 
         if ($coupon->status !== DefineStatus::ACTIVE) {
-            throw new UnprocessableEntityHttpException(__('coupons.coupon_inactive'));
+            throw new UnprocessableEntityHttpException(__('orders.coupon_inactive'));
         }
 
         if ($coupon->store_id !== null && $coupon->store_id !== $branch->store_id) {
-            throw new UnprocessableEntityHttpException(__('coupons.coupon_not_valid_per_store'));
+            throw new UnprocessableEntityHttpException(__('orders.coupon_not_valid_per_store'));
         }
 
         if ($coupon->starts_at && now()->lt($coupon->starts_at)) {
-            throw new UnprocessableEntityHttpException(__('coupons.coupon_not_active_yet'));
+            throw new UnprocessableEntityHttpException(__('orders.coupon_not_active_yet'));
         }
 
         if ($coupon->expires_at && now()->gt($coupon->expires_at)) {
-            throw new UnprocessableEntityHttpException(__('coupons.coupon_expired'));
+            throw new UnprocessableEntityHttpException(__('orders.coupon_expired'));
         }
 
         if ($coupon->usage_limit_per_user) {
             $usedByCustomer = Order::where('customer_id', auth()->id())->where('coupon_id', $coupon->id)->count();
 
             if ($usedByCustomer >= $coupon->usage_limit_per_user) {
-                throw new UnprocessableEntityHttpException(__('coupons.coupon_usage_reached'));
+                throw new UnprocessableEntityHttpException(__('orders.coupon_usage_reached'));
             }
         }
 
@@ -159,15 +159,15 @@ class PlaceOrderService
     private function validateProduct(Product $product, int $quantity, StoreBranch $branch): void
     {
         if ($product->store_id !== $branch->store_id) {
-            throw new UnprocessableEntityHttpException(__('products.not_belongs_to_store', ['name' => $product->name]));
+            throw new UnprocessableEntityHttpException(__('orders.not_belongs_to_store', ['name' => $product->name]));
         }
 
         if ($product->status !== DefineStatus::ACTIVE) {
-            throw new UnprocessableEntityHttpException(__('products.unavailable', ['name' => $product->name]));
+            throw new UnprocessableEntityHttpException(__('orders.unavailable', ['name' => $product->name]));
         }
 
         if ($product->quantity < $quantity) {
-            throw new UnprocessableEntityHttpException(__('products.not_enough_stock', ['name' => $product->name]));
+            throw new UnprocessableEntityHttpException(__('orders.not_enough_stock', ['name' => $product->name]));
         }
     }
 

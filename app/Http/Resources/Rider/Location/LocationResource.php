@@ -17,7 +17,7 @@ class LocationResource extends JsonResource
         return [
             'current_latitude'  => $this->current_latitude,
             'current_longitude' => $this->current_longitude,
-            'updated_at'        => $this->last_location_updated_at->toISOString(),
+            'updated_at'        => $this->last_location_updated_at,
         ];
     }
 }

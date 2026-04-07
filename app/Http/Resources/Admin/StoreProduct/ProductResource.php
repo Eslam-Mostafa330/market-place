@@ -25,7 +25,7 @@ class ProductResource extends JsonResource
             'preparation_time' => $this->preparation_time,
             'is_featured'      => $this->is_featured,
             'active_status'    => $this->status,
-            'created_at'       => $this->created_at->format('d-m-Y'),
+            'created_at'       => $this->created_at,
             'product_category' => $this->whenLoaded('productCategory', fn () => $this->productCategory?->name),
         ];
     }

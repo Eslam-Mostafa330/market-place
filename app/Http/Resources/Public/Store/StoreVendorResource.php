@@ -18,7 +18,7 @@ class StoreVendorResource extends JsonResource
             'name'         => $this->business_name,
             'rating'       => $this->rating,
             'total_orders' => $this->total_orders,
-            'joined_at'    => $this->created_at->format('d-m-Y')
+            'joined_at'    => $this->created_at,
         ];
     }
 }

@@ -26,7 +26,7 @@ class StoreBranchResource extends JsonResource
             'latitude'          => $this->latitude,
             'longitude'         => $this->longitude,
             'active_status'     => $this->status,
-            'created_at'        => $this->created_at->format('d-m-Y'),
+            'created_at'        => $this->created_at,
         ];
     }
 }

@@ -21,8 +21,8 @@ class PlaceOrderRequest extends FormRequest
             'items'              => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'uuid'],
             'items.*.quantity'   => ['required', 'integer', 'min:1'],
-            'coupon_code'        => ['nullable', 'string', 'exists:coupons,code'],
-            'payment_method'     => ['required', Rule::in(PaymentMethod::values())],
+            'coupon_code'        => ['nullable', 'string', 'max:255', 'exists:coupons,code'],
+            'payment_method'     => ['required', 'integer', Rule::in(PaymentMethod::values())],
             'notes'              => ['nullable', 'string', 'max:500'],
         ];
     }

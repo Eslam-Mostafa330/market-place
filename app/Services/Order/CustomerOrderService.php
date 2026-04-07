@@ -16,7 +16,6 @@ class CustomerOrderService
      */
     public function cancelOrder(Order $order, int $reason, ?string $note = null): Order
     {
-        $this->validateOwnership($order);
         $this->validateCancellable($order);
 
         $order->update([
@@ -27,18 +26,6 @@ class CustomerOrderService
         ]);
 
         return $order;
-    }
-
-    /**
-     * Verify the order belongs to the authenticated customer.
-     *
-     * @throws \Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException
-     */
-    private function validateOwnership(Order $order): void
-    {
-        if ($order->customer_id !== auth()->id()) {
-            throw new UnprocessableEntityHttpException(__('customers.not_owned_by_you'));
-        }
     }
 
     /**

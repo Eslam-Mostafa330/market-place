@@ -27,7 +27,7 @@ class OrderResource extends JsonResource
             'total'             => $this->total,
             'store_name'        => $this->store->name,
             'store_branch_name' => $this->storeBranch->name,
-            'created_at'        => $this->created_at->format('d-m-Y'),
+            'created_at'        => $this->created_at,
             'delivery'          => new OrderDeliveryResource($this->whenLoaded('delivery')),
             'items'             => OrderItemResource::collection($this->whenLoaded('items')),
         ];

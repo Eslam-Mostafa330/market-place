@@ -66,6 +66,7 @@ class OrderController extends BaseApiController
      */
     public function cancel(CancelOrderRequest $request, Order $order)
     {
+        $this->authorizeOrder($order);
         $data = $request->validated();
         $order = $this->customerOrderService->cancelOrder($order, $data['reason'], $data['note']);
         return $this->apiResponse(new OrderCancellationResource($order));

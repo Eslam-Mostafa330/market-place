@@ -16,7 +16,7 @@ class RiderProfileResource extends JsonResource
     {
         return [
             'license_number'   => $this->license_number,
-            'license_expiry'   => $this->license_expiry->format('d-m-Y'),
+            'license_expiry'   => $this->license_expiry,
             'vehicle_type'     => $this->vehicle_type,
             'vehicle_number'   => $this->vehicle_number,
             'total_deliveries' => $this->total_deliveries,
