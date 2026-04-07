@@ -48,7 +48,7 @@ class RiderAssignedNotification extends Notification
             'delivery_lng'      => $this->order->delivery_longitude,
             'delivery_phone'    => $this->order->delivery_phone,
             'rider_earnings'    => $this->order->rider_earnings,
-            'message'           => 'You have been assigned a new delivery order.',
+            'message'           => __('notifications.rider_assigned'),
         ];
     }
 }

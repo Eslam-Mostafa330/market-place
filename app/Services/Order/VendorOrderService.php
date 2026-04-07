@@ -5,6 +5,8 @@ namespace App\Services\Order;
 use App\Enums\OrderStatus;
 use App\Models\Order;
 use App\Jobs\Order\FindRiderJob;
+use App\Models\User;
+use App\Notifications\Order\OrderStatusUpdatedNotification;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class VendorOrderService
@@ -14,12 +16,15 @@ class VendorOrderService
      *
      * Validates that The order is still in pending status
      * Then moves the order to accepted status.
+     * Notifies the customer that their order has been accepted and is being prepared.
      */
     public function acceptOrder(Order $order): Order
     {
         $this->validateOrderStatus($order, OrderStatus::PENDING, __('vendors.ensure_pending_orders'));
 
         $order->update(['order_status' => OrderStatus::ACCEPTED]);
+
+        User::find($order->customer_id)?->notify(new OrderStatusUpdatedNotification($order, __('notifications.order_accepted')));
 
         return $order;
     }

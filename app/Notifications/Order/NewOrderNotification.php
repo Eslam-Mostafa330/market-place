@@ -43,7 +43,7 @@ class NewOrderNotification extends Notification
             'store_name'        => $this->storeName,
             'items_count'       => $this->itemsCount,
             'total'             => $this->order->total,
-            'message'           => 'You have received a new order.',
+            'message'           => __('notifications.new_order'),
         ];
     }
 }

@@ -7,6 +7,7 @@ use App\Enums\CancellationReason;
 use App\Jobs\Order\FindRiderJob;
 use App\Models\Order;
 use App\Models\User;
+use App\Notifications\Order\OrderCancelledNotification;
 use App\Notifications\Order\RiderAssignedNotification;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
@@ -39,6 +40,7 @@ class AdminOrderService
      *
      * Admin can cancel orders that are not already cancelled or delivered.
      * Ensure the order is not in a not canceled or delivered status before allowing cancellation.
+     * Notify the customer about the cancellation with the reason and note for better transparency and communication.
      */
     public function cancelOrder(Order $order, ?string $note = null): Order
     {
@@ -52,6 +54,8 @@ class AdminOrderService
             'cancellation_reason' => CancellationReason::OTHER,
             'cancellation_note'   => $note,
         ]);
+
+        $order->customer->notify(new OrderCancelledNotification($order));
 
         return $order;
     }

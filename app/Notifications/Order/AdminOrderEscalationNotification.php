@@ -43,7 +43,7 @@ class AdminOrderEscalationNotification extends Notification
             'attempts'        => $this->order->rider_assignment_attempts,
             'waiting_since'   => $this->order->rider_search_started_at,
             'total'           => $this->order->total,
-            'message'         => 'No available rider found after 5 minutes. Manual assignment or action required.',
+            'message'         => __('notifications.order_escalation'),
         ];
     }
 }

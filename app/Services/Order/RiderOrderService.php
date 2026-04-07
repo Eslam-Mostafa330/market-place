@@ -6,6 +6,8 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Jobs\Order\FindRiderJob;
 use App\Models\Order;
+use App\Models\User;
+use App\Notifications\Order\OrderStatusUpdatedNotification;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class RiderOrderService
@@ -34,12 +36,16 @@ class RiderOrderService
 
     /**
      * Rider confirms they have picked up the order from the branch.
+     * Validates that the order is in the correct status for pickup before allowing the status change.
+     * Notifies the customer that their order is on the way after pickup.
      */
     public function pickupOrder(Order $order): Order
     {
         $this->validateStatus($order, OrderStatus::RIDER_ASSIGNED, __('riders.cannot_pickup'));
 
         $order->update(['order_status' => OrderStatus::PICKED_UP]);
+
+        User::find($order->customer_id)?->notify(new OrderStatusUpdatedNotification($order, __('notifications.order_picked_up')));
 
         return $order;
     }
@@ -49,6 +55,8 @@ class RiderOrderService
      *
      * Mark the order as delivered.
      * Payment status moves to paid since this is COD.
+     * Validates that the order is in the correct status for delivery before allowing the status change.
+     * Notifies the customer that their order has been delivered after delivery.
      */
     public function deliverOrder(Order $order): Order
     {
@@ -59,6 +67,8 @@ class RiderOrderService
             'payment_status' => PaymentStatus::PAID,
             'delivered_at'   => now(),
         ]);
+
+        User::find($order->customer_id)?->notify(new OrderStatusUpdatedNotification($order, __('notifications.order_delivered')));
 
         return $order;
     }
