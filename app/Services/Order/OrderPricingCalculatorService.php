@@ -16,9 +16,11 @@ class OrderPricingCalculatorService
      * how revenue is distributed between the platform (commission), vendor, and rider.
      *
      * Business rules:
-     * - Commission is applied only to the subtotal (products), not delivery or discounts.
-     * - Vendor earnings are subtotal minus commission.
-     * - Rider earnings equal the full delivery fee.
+     * - Discounts are applied to the subtotal before any further calculations.
+     * - Commission is applied only to the discounted subtotal (not the original subtotal or delivery fee).
+     * - Vendor earnings are calculated from the discounted subtotal after deducting commission,
+     *   meaning the vendor fully absorbs the discount.
+     * - Rider earnings equal the full delivery fee and are unaffected by discounts.
      *
      * @param array       $items          List of items (unit_price, quantity)
      * @param StoreBranch $branch         Source of delivery fee
@@ -32,10 +34,12 @@ class OrderPricingCalculatorService
         $subtotal    = $this->calculateSubtotal($items);
         $deliveryFee = (float) $branch->delivery_fee;
         $discount    = $this->calculateDiscount($coupon, $subtotal);
-        $total       = round($subtotal + $deliveryFee - $discount, 2);
+        $discountedSubtotal = round($subtotal - $discount, 2);
 
-        $commissionAmount = round($subtotal * ($commissionRate / 100), 2);
-        $vendorEarnings = round($subtotal - $commissionAmount, 2);
+        $total = round($discountedSubtotal + $deliveryFee, 2);
+        $commissionAmount = round($discountedSubtotal * ($commissionRate / 100), 2);
+
+        $vendorEarnings = round($discountedSubtotal - $commissionAmount, 2);
         $riderEarnings = $deliveryFee;
 
         return [

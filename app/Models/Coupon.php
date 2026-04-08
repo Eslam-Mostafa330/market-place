@@ -2,13 +2,20 @@
 
 namespace App\Models;
 
+use App\Enums\CouponType;
 use App\Enums\DefineStatus;
+use App\Filters\OrderFilters;
+use Essa\APIToolKit\Filters\Filterable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 
 class Coupon extends BaseModel
 {
+    use Filterable;
+
+    protected string $default_filters = OrderFilters::class;
+
     /**
      * The attributes that are mass assignable.
      *
@@ -40,6 +47,7 @@ class Coupon extends BaseModel
         return [
             'maximum_discount' => 'decimal:2',
             'minimum_order'    => 'decimal:2',
+            'coupon_type'      => CouponType::class,
             'expires_at'       => 'datetime',
             'starts_at'        => 'datetime',
             'status'           => DefineStatus::class,
@@ -56,6 +64,14 @@ class Coupon extends BaseModel
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
+    }
+
+    /**
+    * Get the store that owns the coupon.
+    */
+    public function store()
+    {
+        return $this->belongsTo(Store::class);
     }
 
     /**** ************* ****/

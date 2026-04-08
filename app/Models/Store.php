@@ -94,6 +94,14 @@ class Store extends BaseModel
     }
 
     /**
+     * The store can has many coupons
+     */
+    public function coupons(): HasMany
+    {
+        return $this->hasMany(Coupon::class);
+    }
+
+    /**
      * The store can create many orders
      */
     public function orders(): HasMany

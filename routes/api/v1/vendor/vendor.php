@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Vendor\BusinessCategoryController;
 use App\Http\Controllers\Api\V1\Vendor\BusinessProfileController;
+use App\Http\Controllers\Api\V1\Vendor\CouponController;
 use App\Http\Controllers\Api\V1\Vendor\NotificationController;
 use App\Http\Controllers\Api\V1\Vendor\OrderController;
 use App\Http\Controllers\Api\V1\Vendor\ProfileController;
@@ -33,6 +34,10 @@ Route::middleware('vendor.verified')->group(function () {
     # ----- Store Routes
     Route::apiResource('stores', StoreController::class)->except('show');
 
+    # ----- Coupons Routes
+    Route::apiResource('stores.coupons', CouponController::class)->scoped();
+    Route::patch('stores/{store}/coupons/{coupon}/toggle-status', [CouponController::class, 'toggleStatus'])->scopeBindings();
+    
     # ----- Store Branch Routes
     Route::apiResource('stores.branches', StoreBranchController::class)->scoped();
     Route::patch('stores/{store}/branches/{branch}/toggle-status', [StoreBranchController::class, 'toggleStatus'])->scopeBindings();
