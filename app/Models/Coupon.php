@@ -4,7 +4,7 @@ namespace App\Models;
 
 use App\Enums\CouponType;
 use App\Enums\DefineStatus;
-use App\Filters\OrderFilters;
+use App\Filters\CouponFilters;
 use Essa\APIToolKit\Filters\Filterable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -14,7 +14,7 @@ class Coupon extends BaseModel
 {
     use Filterable;
 
-    protected string $default_filters = OrderFilters::class;
+    protected string $default_filters = CouponFilters::class;
 
     /**
      * The attributes that are mass assignable.
