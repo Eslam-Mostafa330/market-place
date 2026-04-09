@@ -78,7 +78,7 @@ class BusinessProfileController extends BaseApiController
     {
         return $this->apiResponseShow([
             'verification_status' => VendorVerificationStatus::INCOMPLETE->value,
-            'message'             => __('verification.vendor.vendor_profile_incomplete'),
+            'message'             => __('vendors.vendor_profile_incomplete'),
         ]);
     }
 }

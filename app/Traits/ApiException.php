@@ -12,6 +12,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
+use Stripe\Exception\SignatureVerificationException;
 
 trait ApiException
 {
@@ -32,6 +33,11 @@ trait ApiException
         /** Bad request */
         if ($e instanceof InvalidArgumentException) {
             return ApiResponse::apiResponse(null, $e->getMessage(), 400);
+        }
+
+        /** Stripe signature verification */
+        if ($e instanceof SignatureVerificationException) {
+            return ApiResponse::apiResponse(null, __('payment.invalid_signature'), 400);
         }
 
         /** Not found */

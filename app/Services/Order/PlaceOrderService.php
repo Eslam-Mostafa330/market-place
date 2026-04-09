@@ -4,6 +4,7 @@ namespace App\Services\Order;
 
 use App\Enums\DefineStatus;
 use App\Enums\OrderStatus;
+use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Coupon;
 use App\Models\Order;
@@ -13,28 +14,30 @@ use App\Models\StoreBranch;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Notifications\Order\NewOrderNotification;
+use App\Services\Payment\PaymentService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class PlaceOrderService
 {
-    public function __construct(private readonly OrderPricingCalculatorService $calculator) {}
+    public function __construct(private readonly OrderPricingCalculatorService $calculator, private readonly PaymentService $paymentService) {}
 
-    /** #### Step one (entry point) ####
-     * Handle the full order placement pipeline.
+    /**
+     * Handle the complete order placement workflow including optional payment processing.
      *
-     * This method orchestrates the order process by:
-     * - Validating the incoming request data
-     * - Executing all critical operations inside a database transaction
-     * - Locking product rows to ensure stock consistency
-     * - Calculating pricing and persisting the order
+     * This method orchestrates the full order lifecycle by:
+     * - Validating and resolving related entities (branch, address, coupon)
+     * - Locking and resolving order items
+     * - Calculating pricing and commissions
+     * - Initiating payment when required (e.g. VISA)
+     * - Returning both the order and payment details (if applicable)
      *
      * @param array $data Validated request data
      *
-     * @return Order The newly created order
+     * @return array{order: Order, payment: array|null}
      */
-    public function handle(array $data): Order
+    public function handle(array $data): array
     {
         ['branch' => $branch, 'address' => $address, 'coupon' => $coupon] = $this->validateOrder($data);
 
@@ -43,13 +46,20 @@ class PlaceOrderService
 
             $pricing = $this->calculator->calculate($items, $branch, (float) $branch->store->commission_rate, $coupon);
 
-            return $this->persistOrder($data, $branch, $address, $coupon, $items, $pricing);
+            $order = $this->persistOrder($data, $branch, $address, $coupon, $items, $pricing);
+
+            $payment = $this->handlePayment($order);
+
+            return [
+                'order'   => $order,
+                'payment' => $payment,
+            ];
         });
     }
 
-    /** #### Step one (business rule validation) ####
+    /**
      * Validate branch, store, address, and coupon.
-     * Returns resolved models so downstream steps
+     * Returns resolved models for use in the order creation process.
      *
      * @throws \Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException
      */
@@ -112,7 +122,7 @@ class PlaceOrderService
         return $coupon;
     }
 
-    /** #### Step two (resolve items) ####
+    /**
      * Resolve and prepare order items with row-level locking.
      *
      * Retrieves all requested products and locks their rows
@@ -171,8 +181,8 @@ class PlaceOrderService
         }
     }
 
-    /** #### Step three (the calculations that was handled by OrderPricingCalculatorService) ####
-     *  #### Step four (persist order) ####
+    /**
+     *
      * Persist the order and all related data to the database.
      * 
      * Responsibilities:
@@ -237,8 +247,6 @@ class PlaceOrderService
      * The delivery phone is resolved as follows:
      * - contact_phone: from the selected user address
      * - fallback: from the authenticated user's profile if not available
-     *
-     * Extracted from createOrder() to keep the transaction logic clean and readable.
      *
      * @param array        $data     Validated request data
      * @param StoreBranch  $branch   Store branch associated with the order
@@ -308,11 +316,10 @@ class PlaceOrderService
     }
 
     /**
-     * Decrements stock quantities for multiple products in a single database query.
+     * Decrements stock quantities for multiple products.
      *
      * This method performs a bulk update using a SQL CASE statement, allowing each
-     * product to be updated with a different decrement value in one query instead
-     * of executing multiple queries (one per product).
+     * product to be updated with a different decrement value in a single query.
      *
      * @param array $items
      * @return void
@@ -329,13 +336,32 @@ class PlaceOrderService
     }
 
     /**
+     * Process payment for the order based on the selected payment method.
+     *
+     * Returns payment data when using online payment (VISA),
+     * otherwise returns null for offline methods such as COD.
+     *
+     * @param Order $order
+     *
+     * @return array|null
+     */
+    private function handlePayment(Order $order): ?array
+    {
+        if ($order->payment_method !== PaymentMethod::VISA) {
+            return null;
+        }
+
+        return $this->paymentService->createPaymentIntent($order);
+    }
+
+    /**
      * Generate a unique sequential order number for the current day.
      *
      * Format: ORD-YYYYMMDD-00001
      *
      * The sequence resets daily and increments per order. This method is designed
      * to be executed within a database transaction using row-level locking
-     * (lockForUpdate) to prevent duplicate sequence numbers under concurrent requests.
+     * to prevent duplicate sequence numbers under concurrent requests.
      *
      * @return string Generated order number
      */

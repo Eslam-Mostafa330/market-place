@@ -51,14 +51,36 @@ class OrderController extends BaseApiController
     }
 
     /**
-     * Customer places a new order.
+     * Customer places a new order and return its data along with payment details when applicable.
      */
-    public function store(PlaceOrderRequest $request): JsonResponse
+    public function store(PlaceOrderRequest $request)
     {
-        $orderData = $request->validated();
-        $order = $this->placeOrderService->handle($orderData);
-        $order->setRelation('delivery', $order);
-        return $this->apiResponseStored(new OrderResource($order->load('items')));
+        ['order' => $order, 'payment' => $payment] = $this->placeOrderService->handle($request->validated());
+        $response = ['order' => new OrderResource($order)];
+        $response = $this->appendPaymentData($response, $payment);
+        return $this->apiResponseStored($response);
+    }
+
+    /**
+     * Append payment data to the response when available.
+     *
+     * @param array $response
+     * @param array|null $payment
+     *
+     * @return array
+     */
+    private function appendPaymentData(array $response, ?array $payment): array
+    {
+        if (! $payment) {
+            return $response;
+        }
+
+        $response['payment'] = [
+            'client_secret'     => $payment['client_secret'],
+            'payment_intent_id' => $payment['payment_intent_id'],
+        ];
+
+        return $response;
     }
 
     /**

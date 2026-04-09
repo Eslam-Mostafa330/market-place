@@ -56,6 +56,7 @@ class Order extends BaseModel
         'cancelled_by',
         'cancellation_reason',
         'cancellation_note',
+        'payment_intent_id',
     ];
 
     /**
@@ -67,7 +68,7 @@ class Order extends BaseModel
     {
         return [
             'rider_search_started_at' => 'datetime',
-            'cancellation_reason'   => CancellationReason::class,
+            'cancellation_reason'     => CancellationReason::class,
             'delivery_longitude'      => 'decimal:8',
             'delivery_latitude'       => 'decimal:8',
             'commission_amount'       => 'decimal:2',

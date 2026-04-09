@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Public\StoreBranchController;
 use App\Http\Controllers\Api\V1\Public\StoreController;
 use App\Http\Controllers\Api\V1\Public\StoreProductCategoryController;
 use App\Http\Controllers\Api\V1\Public\StoreProductController;
+use App\Http\Controllers\Api\V1\Public\StripeWebhookController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -35,3 +36,6 @@ Route::controller(StoreProductController::class)->prefix('stores/{store:slug}/pr
 
 # ----- Favorite Routes
 Route::post('favorites/toggle', [FavoriteController::class, 'toggle'])->middleware(['auth:sanctum', 'isCustomer']);
+
+# ----- Stripe Webhook Routes (handles order status updates)
+Route::post('stripe/webhook', [StripeWebhookController::class, 'handle']);
