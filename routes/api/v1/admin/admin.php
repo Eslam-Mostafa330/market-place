@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Admin\BusinessCategoryController;
 use App\Http\Controllers\Api\V1\Admin\CustomerController;
 use App\Http\Controllers\Api\V1\Admin\NotificationController;
 use App\Http\Controllers\Api\V1\Admin\OrderController;
+use App\Http\Controllers\Api\V1\Admin\PayoutController;
 use App\Http\Controllers\Api\V1\Admin\ProfileController;
 use App\Http\Controllers\Api\V1\Admin\RiderController;
 use App\Http\Controllers\Api\V1\Admin\StoreBranchController;
@@ -66,15 +67,23 @@ Route::apiResource('stores.products', StoreProductController::class)->except('up
 Route::controller(NotificationController::class)->prefix('notifications')->group(function () {
     Route::get('/', 'index');
     Route::get('/unread-count', 'unreadNotificationsCount');
-    Route::patch('/{notification}/read', 'markAsRead');
-    Route::patch('/read-all', 'markAllAsRead');
+    Route::post('/{notification}/read', 'markAsRead');
+    Route::post('/read-all', 'markAllAsRead');
 });
 
 # ----- Order Routes
 Route::controller(OrderController::class)->prefix('orders')->group(function () {
     Route::get('/', 'index');
     Route::get('/{order}', 'show');
-    Route::patch('/{order}/assign-rider', 'assignRider');
-    Route::patch('/{order}/cancel', 'cancel');
-    Route::patch('/{order}/extend-search', 'extendSearch');
+    Route::post('/{order}/assign-rider', 'assignRider');
+    Route::post('/{order}/cancel', 'cancel');
+    Route::post('/{order}/extend-search', 'extendSearch');
+});
+
+# ----- Payout Routes
+Route::controller(PayoutController::class)->prefix('payouts')->group(function () {
+    Route::get('/', 'index');
+    Route::get('/{payout}', 'show');
+    Route::post('/{payout}/complete', 'complete');
+    Route::patch('/{payout}/details', 'update');
 });

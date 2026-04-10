@@ -3,15 +3,20 @@
 namespace App\Services\Order;
 
 use App\Enums\OrderStatus;
+use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Jobs\Order\FindRiderJob;
 use App\Models\Order;
 use App\Models\User;
 use App\Notifications\Order\OrderStatusUpdatedNotification;
+use App\Services\Payment\PayoutService;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class RiderOrderService
 {
+    public function __construct(private readonly PayoutService $payoutService) {}
+
     /**
      * Rider rejects the assigned order.
      *
@@ -54,19 +59,27 @@ class RiderOrderService
      * Rider marks the order as delivered to the customer.
      *
      * Mark the order as delivered.
-     * Payment status moves to paid since this is COD.
-     * Validates that the order is in the correct status for delivery before allowing the status change.
+     * Validates that the order is in the correct status for delivery.
+     * Create payout record for VISA orders automatically.
      * Notifies the customer that their order has been delivered after delivery.
      */
     public function deliverOrder(Order $order): Order
     {
-        $this->validateStatus($order, OrderStatus::PICKED_UP, __('riders.cannot_deliver'));
+        $order = DB::transaction(function () use ($order) {
+            $this->validateStatus($order, OrderStatus::PICKED_UP, __('riders.cannot_deliver'));
 
-        $order->update([
-            'order_status'   => OrderStatus::DELIVERED,
-            'payment_status' => PaymentStatus::PAID,
-            'delivered_at'   => now(),
-        ]);
+            $order->update([
+                'order_status'      => OrderStatus::DELIVERED,
+                'delivered_at'      => now(),
+                ...($order->payment_method === PaymentMethod::CASH
+                ? ['payment_status' => PaymentStatus::PAID]
+                : []),
+            ]);
+
+            $this->payoutService->createPayoutIfNeeded($order);
+
+            return $order;
+        });
 
         User::find($order->customer_id)?->notify(new OrderStatusUpdatedNotification($order, __('notifications.order_delivered')));
 

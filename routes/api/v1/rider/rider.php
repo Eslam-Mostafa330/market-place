@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Rider\NotificationController;
 use App\Http\Controllers\Api\V1\Rider\OrderController;
+use App\Http\Controllers\Api\V1\Rider\PayoutController;
 use App\Http\Controllers\Api\V1\Rider\ProfileController;
 use App\Http\Controllers\Api\V1\Rider\RiderLocationController;
 use Illuminate\Support\Facades\Route;
@@ -17,21 +18,27 @@ Route::controller(ProfileController::class)->prefix('profile')->group(function (
 # ----- Location Routes
 Route::controller(RiderLocationController::class)->group(function () {
     Route::get('/availability', 'getAvailability');
-    Route::patch('/availability/update', 'updateAvailability');
-    Route::patch('/location/update', 'updateLocation');
+    Route::patch('/availability', 'updateAvailability');
+    Route::patch('/location', 'updateLocation');
 });
 
 # ----- Notification Routes
 Route::controller(NotificationController::class)->prefix('notifications')->group(function () {
     Route::get('/', 'index');
     Route::get('/unread-count', 'unreadNotificationsCount');
-    Route::patch('/{notification}/read', 'markAsRead');
-    Route::patch('/read-all', 'markAllAsRead');
+    Route::post('/{notification}/read', 'markAsRead');
+    Route::post('/read-all', 'markAllAsRead');
 });
 
 # ----- Order Routes
 Route::controller(OrderController::class)->prefix('orders')->group(function () {
-    Route::patch('/{order}/reject', 'reject');
-    Route::patch('/{order}/pickup', 'pickup');
-    Route::patch('/{order}/deliver', 'deliver');
+    Route::post('/{order}/reject', 'reject');
+    Route::post('/{order}/pickup', 'pickup');
+    Route::post('/{order}/deliver', 'deliver');
+});
+
+# ----- Payout Routes
+Route::controller(PayoutController::class)->prefix('payouts')->group(function () {
+    Route::get('/', 'index');
+    Route::get('/{payout}', 'show');
 });

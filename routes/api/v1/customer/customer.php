@@ -27,12 +27,12 @@ Route::controller(FavoriteController::class)->prefix('favorites')->group(functio
 
 # ----- Order Routes
 Route::apiResource('orders', OrderController::class)->except('update', 'destroy');
-Route::patch('orders/{order}/cancel', [OrderController::class, 'cancel']);
+Route::post('orders/{order}/cancel', [OrderController::class, 'cancel']);
 
 # ----- Notification Routes
 Route::controller(NotificationController::class)->prefix('notifications')->group(function () {
     Route::get('/', 'index');
     Route::get('/unread-count', 'unreadNotificationsCount');
-    Route::patch('/{notification}/read', 'markAsRead');
-    Route::patch('/read-all', 'markAllAsRead');
+    Route::post('/{notification}/read', 'markAsRead');
+    Route::post('/read-all', 'markAllAsRead');
 });
