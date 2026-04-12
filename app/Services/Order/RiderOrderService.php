@@ -9,13 +9,14 @@ use App\Jobs\Order\FindRiderJob;
 use App\Models\Order;
 use App\Models\User;
 use App\Notifications\Order\OrderStatusUpdatedNotification;
-use App\Services\Payment\PayoutService;
+use App\Services\Payment\RiderPayoutService;
+use App\Services\Payment\VendorPayoutService;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class RiderOrderService
 {
-    public function __construct(private readonly PayoutService $payoutService) {}
+    public function __construct(private readonly RiderPayoutService $riderPayoutService, private readonly VendorPayoutService $vendorPayoutService) {}
 
     /**
      * Rider rejects the assigned order.
@@ -60,7 +61,7 @@ class RiderOrderService
      *
      * Mark the order as delivered.
      * Validates that the order is in the correct status for delivery.
-     * Create payout record for VISA orders automatically.
+     * Create payout record for VISA orders automatically for riders and vendors.
      * Notifies the customer that their order has been delivered after delivery.
      */
     public function deliverOrder(Order $order): Order
@@ -76,7 +77,8 @@ class RiderOrderService
                 : []),
             ]);
 
-            $this->payoutService->createPayoutIfNeeded($order);
+            $this->riderPayoutService->createPayoutIfNeeded($order);
+            $this->vendorPayoutService->createPayoutIfNeeded($order);
 
             return $order;
         });

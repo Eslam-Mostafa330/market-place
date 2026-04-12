@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests\Admin\Payout;
+namespace App\Http\Requests\Admin\VendorPayout;
 
 use App\Enums\PayoutMethod;
 use App\Http\Requests\FormRequest;

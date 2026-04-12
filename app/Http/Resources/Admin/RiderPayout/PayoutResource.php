@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Resources\Admin\Payout;
+namespace App\Http\Resources\Admin\RiderPayout;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;

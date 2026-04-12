@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Resources\Admin\Payout;
+namespace App\Http\Resources\Admin\VendorPayout;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class PayoutOrderResource extends JsonResource
+class PayoutVendorResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -14,9 +14,6 @@ class PayoutOrderResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        return [
-            'id'           => $this->id,
-            'order_number' => $this->order_number,
-        ];
+        return parent::toArray($request);
     }
 }

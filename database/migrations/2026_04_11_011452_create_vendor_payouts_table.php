@@ -12,9 +12,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('rider_payouts', function (Blueprint $table) {
+        Schema::create('vendor_payouts', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('rider_id')->constrained('users')->onDelete('restrict');
+            $table->foreignUuid('vendor_id')->constrained('users')->onDelete('restrict');
             $table->foreignUuid('order_id')->constrained('orders')->onDelete('restrict')->unique();
             $table->foreignUuid('processed_by')->nullable()->constrained('users')->onDelete('set null');
             $table->foreignUuid('updated_by')->nullable()->constrained('users')->onDelete('set null');
@@ -34,6 +34,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('rider_payouts');
+        Schema::dropIfExists('vendor_payouts');
     }
 };

@@ -10,12 +10,12 @@ use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Illuminate\Support\Arr;
 
-class PayoutService
+class RiderPayoutService
 {
     /**
      * Create a pending payout record for the rider after delivery.
      *
-     * Only VISA orders need a payout record, as COD orders are paid directly to the rider.
+     * Only VISA orders need a payout record.
      * This is called automatically when order status moves to delivered.
      */
     public function createPayoutIfNeeded(Order $order): void
@@ -45,18 +45,18 @@ class PayoutService
      *
      * @return RiderPayout The updated payout.
      */
-    public function completePayout(RiderPayout $payout, array $data): RiderPayout
+    public function completePayout(RiderPayout $riderPayout, array $data): RiderPayout
     {
-        $this->validatePayoutCanBeCompleted($payout);
+        $this->validatePayoutCanBeCompleted($riderPayout);
 
-        $payout->update([
+        $riderPayout->update([
             ...Arr::only($data, ['payout_method', 'reference', 'notes', 'payout_proof']),
             'status'        => PayoutStatus::COMPLETED,
             'processed_by'  => auth()->id(),
             'paid_at'       => now(),
         ]);
 
-        return $payout;
+        return $riderPayout;
     }
 
     /**
@@ -69,16 +69,16 @@ class PayoutService
      *
      * @return RiderPayout The updated payout.
      */
-    public function updatePayoutDetails(RiderPayout $payout, array $data): RiderPayout
+    public function updatePayoutDetails(RiderPayout $riderPayout, array $data): RiderPayout
     {
-        $this->validatePayoutNotCompleted($payout);
+        $this->validatePayoutNotCompleted($riderPayout);
 
-        $payout->update([
-            Arr::only($data, ['payout_method', 'reference', 'notes', 'payout_proof']),
+        $riderPayout->update([
+            ...Arr::only($data, ['payout_method', 'reference', 'notes', 'payout_proof']),
             'updated_by' => auth()->id(),
         ]);
 
-        return $payout;
+        return $riderPayout;
     }
 
     /**
@@ -86,9 +86,9 @@ class PayoutService
      *
      * @throws \Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException
      */
-    private function validatePayoutCanBeCompleted(RiderPayout $payout): void
+    private function validatePayoutCanBeCompleted(RiderPayout $riderPayout): void
     {
-        if ($payout->status === PayoutStatus::COMPLETED) {
+        if ($riderPayout->status === PayoutStatus::COMPLETED) {
             throw new UnprocessableEntityHttpException(__('payment.payout.already_completed'));
         }
     }
@@ -98,9 +98,9 @@ class PayoutService
      *
      * @throws \Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException
      */
-    private function validatePayoutNotCompleted(RiderPayout $payout): void
+    private function validatePayoutNotCompleted(RiderPayout $riderPayout): void
     {
-        if ($payout->status !== PayoutStatus::COMPLETED) {
+        if ($riderPayout->status !== PayoutStatus::COMPLETED) {
             throw new UnprocessableEntityHttpException(__('payment.payout.not_completed'));
         }
     }

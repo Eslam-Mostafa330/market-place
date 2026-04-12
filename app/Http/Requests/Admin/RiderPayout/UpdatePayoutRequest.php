@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Requests\Admin\Payout;
+namespace App\Http\Requests\Admin\RiderPayout;
 
 use App\Enums\PayoutMethod;
 use App\Http\Requests\FormRequest;
 use Illuminate\Validation\Rule;
 
-class MarkCompletePayoutRequest extends FormRequest
+class UpdatePayoutRequest extends FormRequest
 {
     /**
      * Get the validation rules that apply to the request.
@@ -16,7 +16,7 @@ class MarkCompletePayoutRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'payout_method' => ['required', 'integer', Rule::in(PayoutMethod::values())],
+            'payout_method' => ['sometimes', 'required', 'integer', Rule::in(PayoutMethod::values())],
             'reference'     => ['nullable', 'string', 'max:255', Rule::requiredIf(fn () => $this->payout_method == PayoutMethod::BANK_TRANSFER->value)],
             'payout_proof'  => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048', Rule::requiredIf(fn () => $this->payout_method == PayoutMethod::PHONE_WALLET->value)],
             'notes'         => ['nullable', 'string', 'max:500', Rule::requiredIf(fn () => in_array($this->integer('payout_method'), PayoutMethod::requiresForNotes()))],

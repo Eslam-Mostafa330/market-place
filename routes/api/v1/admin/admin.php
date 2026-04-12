@@ -6,15 +6,17 @@ use App\Http\Controllers\Api\V1\Admin\BusinessCategoryController;
 use App\Http\Controllers\Api\V1\Admin\CustomerController;
 use App\Http\Controllers\Api\V1\Admin\NotificationController;
 use App\Http\Controllers\Api\V1\Admin\OrderController;
-use App\Http\Controllers\Api\V1\Admin\PayoutController;
 use App\Http\Controllers\Api\V1\Admin\ProfileController;
 use App\Http\Controllers\Api\V1\Admin\RiderController;
+use App\Http\Controllers\Api\V1\Admin\SettingController;
 use App\Http\Controllers\Api\V1\Admin\StoreBranchController;
 use App\Http\Controllers\Api\V1\Admin\StoreController;
 use App\Http\Controllers\Api\V1\Admin\StoreProductCategoryController;
 use App\Http\Controllers\Api\V1\Admin\StoreProductController;
 use App\Http\Controllers\Api\V1\Admin\VendorBusinessProfileController;
 use App\Http\Controllers\Api\V1\Admin\VendorController;
+use App\Http\Controllers\Api\V1\Admin\VendorPayoutController;
+use App\Http\Controllers\Api\V1\Admin\RiderPayoutController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -80,10 +82,18 @@ Route::controller(OrderController::class)->prefix('orders')->group(function () {
     Route::post('/{order}/extend-search', 'extendSearch');
 });
 
-# ----- Payout Routes
-Route::controller(PayoutController::class)->prefix('payouts')->group(function () {
+# ----- Rider Payout Routes
+Route::controller(RiderPayoutController::class)->prefix('rider-payouts')->group(function () {
     Route::get('/', 'index');
-    Route::get('/{payout}', 'show');
-    Route::post('/{payout}/complete', 'complete');
-    Route::patch('/{payout}/details', 'update');
+    Route::get('/{riderPayout}', 'show');
+    Route::post('/{riderPayout}/complete', 'complete');
+    Route::patch('/{riderPayout}/details', 'update');
+});
+
+# ----- Vendor Payout Routes
+Route::controller(VendorPayoutController::class)->prefix('vendor-payouts')->group(function () {
+    Route::get('/', 'index');
+    Route::get('/{vendorPayout}', 'show');
+    Route::post('/{vendorPayout}/complete', 'complete');
+    Route::patch('/{vendorPayout}/details', 'update');
 });

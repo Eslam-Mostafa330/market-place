@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\Vendor\BusinessProfileController;
 use App\Http\Controllers\Api\V1\Vendor\CouponController;
 use App\Http\Controllers\Api\V1\Vendor\NotificationController;
 use App\Http\Controllers\Api\V1\Vendor\OrderController;
+use App\Http\Controllers\Api\V1\Vendor\PayoutController;
 use App\Http\Controllers\Api\V1\Vendor\ProfileController;
 use App\Http\Controllers\Api\V1\Vendor\StoreBranchController;
 use App\Http\Controllers\Api\V1\Vendor\StoreController;
@@ -64,5 +65,11 @@ Route::middleware('vendor.verified')->group(function () {
         Route::post('/{order}/accept', 'accept');
         Route::post('/{order}/prepare', 'prepare');
         Route::post('/{order}/ready', 'ready');
+    });
+
+    # ----- Payout Routes
+    Route::controller(PayoutController::class)->prefix('payouts')->group(function () {
+        Route::get('/', 'index');
+        Route::get('/{payout}', 'show');
     });
 });
