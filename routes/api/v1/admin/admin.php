@@ -97,3 +97,13 @@ Route::controller(VendorPayoutController::class)->prefix('vendor-payouts')->grou
     Route::post('/{vendorPayout}/complete', 'complete');
     Route::patch('/{vendorPayout}/details', 'update');
 });
+
+# ----- Setting Routes
+Route::controller(SettingController::class)->prefix('settings')->group(function () {
+    Route::get('/loyalty-points', 'showLoyaltyPoints');
+    Route::patch('/loyalty-points', 'updateLoyaltyPoints');
+    Route::get('/contact', 'showContact');
+    Route::patch('/contact', 'updateContact');
+    Route::get('/social', 'showSocial');
+    Route::patch('/social', 'updateSocial');
+});

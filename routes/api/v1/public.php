@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Public\AppInfoController;
 use App\Http\Controllers\Api\V1\Public\BusinessCategoryController;
 use App\Http\Controllers\Api\V1\Public\FavoriteController;
 use App\Http\Controllers\Api\V1\Public\StoreBranchController;
@@ -39,3 +40,6 @@ Route::post('favorites/toggle', [FavoriteController::class, 'toggle'])->middlewa
 
 # ----- Stripe Webhook Routes (handles order status updates)
 Route::post('stripe/webhook', [StripeWebhookController::class, 'handle']);
+
+# ----- App General Info Routes
+Route::get('app-info', AppInfoController::class);
