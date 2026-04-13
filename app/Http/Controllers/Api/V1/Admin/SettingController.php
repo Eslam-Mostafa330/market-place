@@ -16,7 +16,7 @@ class SettingController extends BaseApiController
     /* ----- Loyalty Points ----- */
     public function showLoyaltyPoints(): JsonResponse
     {
-        $loyaltyPoints = (int) Setting::where('key', SettingKey::LOYALTY_POINTS)->value('value');
+        $loyaltyPoints = Setting::loyaltyPoints();
         return $this->apiResponseShow($loyaltyPoints);
     }
 
@@ -29,9 +29,9 @@ class SettingController extends BaseApiController
         ];
 
         Setting::upsert($data, ['key'], ['value']);
-        Cache::forget('public_settings');
+        Cache::forget('loyalty_points');
 
-        $updatedLoyaltyPoints = (int) Setting::where('key', SettingKey::LOYALTY_POINTS)->value('value');
+        $updatedLoyaltyPoints = Setting::loyaltyPoints();
         return $this->apiResponseUpdated($updatedLoyaltyPoints);
     }
 

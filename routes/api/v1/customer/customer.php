@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Customer\AddressController;
 use App\Http\Controllers\Api\V1\Customer\FavoriteController;
+use App\Http\Controllers\Api\V1\Customer\LoyaltyController;
 use App\Http\Controllers\Api\V1\Customer\NotificationController;
 use App\Http\Controllers\Api\V1\Customer\OrderController;
 use App\Http\Controllers\Api\V1\Customer\ProfileController;
@@ -36,3 +37,6 @@ Route::controller(NotificationController::class)->prefix('notifications')->group
     Route::post('/{notification}/read', 'markAsRead');
     Route::post('/read-all', 'markAllAsRead');
 });
+
+# ----- Loyalty Points Routes
+Route::post('loyalty/redeem', LoyaltyController::class);

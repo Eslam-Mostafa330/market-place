@@ -20,6 +20,7 @@ class OrderPricingCalculatorService
      * - Commission is applied only to the discounted subtotal (not the original subtotal or delivery fee).
      * - Vendor earnings are calculated from the discounted subtotal after deducting commission,
      *   meaning the vendor fully absorbs the discount.
+     * - Calculate the wallet discount.
      * - Rider earnings equal the full delivery fee and are unaffected by discounts.
      *
      * @param array       $items          List of items (unit_price, quantity)
@@ -29,14 +30,15 @@ class OrderPricingCalculatorService
      *
      * @return array Pricing breakdown including totals and earnings distribution
      */
-    public function calculate(array $items, StoreBranch $branch, float $commissionRate, ?Coupon $coupon = null): array 
+    public function calculate(array $items, StoreBranch $branch, float $commissionRate, ?Coupon $coupon = null, float $walletDiscount = 0.0): array 
     {
         $subtotal    = $this->calculateSubtotal($items);
         $deliveryFee = (float) $branch->delivery_fee;
         $discount    = $this->calculateDiscount($coupon, $subtotal);
         $discountedSubtotal = round($subtotal - $discount, 2);
 
-        $total = round($discountedSubtotal + $deliveryFee, 2);
+        $walletDiscount = min($walletDiscount, round($discountedSubtotal * 0.50, 2));
+        $total = round($discountedSubtotal + $deliveryFee - $walletDiscount, 2);
         $commissionAmount = round($discountedSubtotal * ($commissionRate / 100), 2);
 
         $vendorEarnings = round($discountedSubtotal - $commissionAmount, 2);
@@ -46,6 +48,7 @@ class OrderPricingCalculatorService
             'subtotal'          => $subtotal,
             'delivery_fee'      => $deliveryFee,
             'discount'          => $discount,
+            'wallet_discount'   => $walletDiscount,
             'total'             => $total,
             'commission_rate'   => $commissionRate,
             'commission_amount' => $commissionAmount,

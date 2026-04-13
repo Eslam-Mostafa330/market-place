@@ -24,7 +24,7 @@ class VendorOrderService
 
         $order->update(['order_status' => OrderStatus::ACCEPTED]);
 
-        User::find($order->customer_id)?->notify(new OrderStatusUpdatedNotification($order, __('notifications.order_accepted')));
+        User::query()->select('id')->find($order->customer_id)?->notify(new OrderStatusUpdatedNotification($order->id, $order->order_number, $order->order_status, __('notifications.order_accepted')));
 
         return $order;
     }

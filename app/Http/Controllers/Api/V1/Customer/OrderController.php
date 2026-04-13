@@ -56,7 +56,7 @@ class OrderController extends BaseApiController
     public function store(PlaceOrderRequest $request)
     {
         ['order' => $order, 'payment' => $payment] = $this->placeOrderService->handle($request->validated());
-        $response = ['order' => new OrderResource($order)];
+        $response = [new OrderResource($order)];
         $response = $this->appendPaymentData($response, $payment);
         return $this->apiResponseStored($response);
     }

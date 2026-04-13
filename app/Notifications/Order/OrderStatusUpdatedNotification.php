@@ -2,20 +2,32 @@
 
 namespace App\Notifications\Order;
 
+use App\Enums\OrderStatus;
 use App\Models\Order;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
+use Illuminate\Validation\Rules\Enum;
 
-class OrderStatusUpdatedNotification extends Notification
+class OrderStatusUpdatedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
     /**
      * Create a new notification instance.
      */
-    public function __construct(private readonly Order $order, private readonly string $message)
+    public function __construct(
+        private readonly string $orderId,
+        private readonly string $orderNumber,
+        private readonly OrderStatus $orderStatus,
+        private readonly string $message
+    ) {}
+
+    public function viaQueues(): array
     {
-        //
+        return [
+            'database' => 'order-status-change',
+        ];
     }
 
     /**
@@ -36,9 +48,9 @@ class OrderStatusUpdatedNotification extends Notification
     public function toDatabase(object $notifiable): array
     {
         return [
-            'order_id'     => $this->order->id,
-            'order_number' => $this->order->order_number,
-            'order_status' => $this->order->order_status,
+            'order_id'     => $this->orderId,
+            'order_number' => $this->orderNumber,
+            'order_status' => $this->orderStatus->value,
             'message'      => $this->message,
         ];
     }

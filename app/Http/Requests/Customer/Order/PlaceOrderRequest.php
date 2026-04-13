@@ -23,6 +23,7 @@ class PlaceOrderRequest extends FormRequest
             'items.*.quantity'   => ['required', 'integer', 'min:1'],
             'coupon_code'        => ['nullable', 'string', 'max:255'],
             'payment_method'     => ['required', 'integer', Rule::in(PaymentMethod::values())],
+            'use_wallet'         => ['nullable', 'boolean'],
             'notes'              => ['nullable', 'string', 'max:500'],
         ];
     }

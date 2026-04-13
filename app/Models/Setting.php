@@ -27,4 +27,17 @@ class Setting extends BaseModel
             'key' => SettingKey::class,
         ];
     }
+
+    /*************************/
+    /**** Custom Methods ****/
+    /************************/
+    /**
+     * Get the loyalty points value as integer.
+     */
+    public static function loyaltyPoints(): int
+    {
+        $value = self::where('key', SettingKey::LOYALTY_POINTS->value)->value('value');
+
+        return (int) $value;
+    }
 }

@@ -9,6 +9,7 @@ use App\Jobs\Order\FindRiderJob;
 use App\Models\Order;
 use App\Models\User;
 use App\Notifications\Order\OrderStatusUpdatedNotification;
+use App\Services\LoyaltyService;
 use App\Services\Payment\RiderPayoutService;
 use App\Services\Payment\VendorPayoutService;
 use Illuminate\Support\Facades\DB;
@@ -16,7 +17,11 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class RiderOrderService
 {
-    public function __construct(private readonly RiderPayoutService $riderPayoutService, private readonly VendorPayoutService $vendorPayoutService) {}
+    public function __construct(
+        private readonly RiderPayoutService  $riderPayoutService,
+        private readonly VendorPayoutService $vendorPayoutService,
+        private readonly LoyaltyService      $loyaltyService,
+    ) {}
 
     /**
      * Rider rejects the assigned order.
@@ -51,7 +56,7 @@ class RiderOrderService
 
         $order->update(['order_status' => OrderStatus::PICKED_UP]);
 
-        User::find($order->customer_id)?->notify(new OrderStatusUpdatedNotification($order, __('notifications.order_picked_up')));
+        User::query()->select('id')->find($order->customer_id)?->notify(new OrderStatusUpdatedNotification($order->id, $order->order_number, $order->order_status, __('notifications.order_picked_up')));
 
         return $order;
     }
@@ -79,11 +84,12 @@ class RiderOrderService
 
             $this->riderPayoutService->createPayoutIfNeeded($order);
             $this->vendorPayoutService->createPayoutIfNeeded($order);
-
+            $this->loyaltyService->awardPoints($order);
+            
             return $order;
         });
 
-        User::find($order->customer_id)?->notify(new OrderStatusUpdatedNotification($order, __('notifications.order_delivered')));
+        User::query()->select('id')->find($order->customer_id)?->notify(new OrderStatusUpdatedNotification($order->id, $order->order_number, $order->order_status, __('notifications.order_delivered')));
 
         return $order;
     }

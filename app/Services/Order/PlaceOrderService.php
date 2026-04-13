@@ -7,6 +7,7 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Coupon;
+use App\Models\CustomerProfile;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -14,6 +15,7 @@ use App\Models\StoreBranch;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Notifications\Order\NewOrderNotification;
+use App\Services\LoyaltyService;
 use App\Services\Payment\PaymentService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -21,7 +23,7 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class PlaceOrderService
 {
-    public function __construct(private readonly OrderPricingCalculatorService $calculator, private readonly PaymentService $paymentService) {}
+    public function __construct(private readonly OrderPricingCalculatorService $calculator, private readonly PaymentService $paymentService, private readonly LoyaltyService $loyaltyService,) {}
 
     /**
      * Handle the complete order placement workflow including optional payment processing.
@@ -32,6 +34,7 @@ class PlaceOrderService
      * - Calculating pricing and commissions
      * - Initiating payment when required (e.g. VISA)
      * - Returning both the order and payment details (if applicable)
+     * - Handle the wallet discount if exists.
      *
      * @param array $data Validated request data
      *
@@ -44,16 +47,19 @@ class PlaceOrderService
         return DB::transaction(function () use ($data, $branch, $address, $coupon) {
             $items = $this->resolveItems($data['items'], $branch);
 
-            $pricing = $this->calculator->calculate($items, $branch, (float) $branch->store->commission_rate, $coupon);
+            ['discount' => $walletDiscount, 'profile' => $walletProfile] = $this->resolveWalletDiscount($data);
+
+            $pricing = $this->calculator->calculate($items, $branch, (float) $branch->store->commission_rate, $coupon, $walletDiscount);
 
             $order = $this->persistOrder($data, $branch, $address, $coupon, $items, $pricing);
 
+            if ($walletProfile && $pricing['wallet_discount'] > 0) {
+                $this->loyaltyService->deductWalletBalance($walletProfile, $pricing['wallet_discount']);
+            }
+
             $payment = $this->handlePayment($order);
 
-            return [
-                'order'   => $order,
-                'payment' => $payment,
-            ];
+            return ['order' => $order, 'payment' => $payment];
         });
     }
 
@@ -271,6 +277,7 @@ class PlaceOrderService
             'subtotal'              => $pricing['subtotal'],
             'delivery_fee'          => $pricing['delivery_fee'],
             'discount'              => $pricing['discount'],
+            'wallet_discount'       => $pricing['wallet_discount'],
             'total'                 => $pricing['total'],
             'commission_rate'       => $pricing['commission_rate'],
             'commission_amount'     => $pricing['commission_amount'],
@@ -352,6 +359,24 @@ class PlaceOrderService
         }
 
         return $this->paymentService->createPaymentIntent($order);
+    }
+
+    /**
+     * Calculate wallet discount if customer chose to use wallet balance.
+     *
+     * Returns 0 if use_wallet is false or customer has no balance.
+     */
+    private function resolveWalletDiscount(array $data): array
+    {
+        if (empty($data['use_wallet'])) {
+            return ['discount' => 0.0, 'profile' => null];
+        }
+
+        $profile = CustomerProfile::where('user_id', auth()->id())
+            ->lockForUpdate()
+            ->first();
+
+        return ['discount' => (float) $profile->wallet_balance, 'profile' => $profile];
     }
 
     /**
