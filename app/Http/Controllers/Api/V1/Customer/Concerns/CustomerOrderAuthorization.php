@@ -14,7 +14,7 @@ trait CustomerOrderAuthorization
      */
     protected function authorizeOrder(Order $order): void
     {
-        $customerId = auth()->user()->id;
+        $customerId = auth()->id();
 
         abort_if(
             ! $customerId || $order->customer_id !== $customerId,

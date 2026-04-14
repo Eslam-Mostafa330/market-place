@@ -14,10 +14,16 @@ class CustomerOrderService
      *
      * Allowed from any status before delivered.
      * Ensure the order is in a cancellable status before allowing cancellation.
+     * Ensure the order belongs to the authenticated customer.
      * Notify the customer about the cancellation and reason for better transparency and communication.
      */
-    public function cancelOrder(Order $order, int $reason, ?string $note = null): Order
+    public function cancelOrder(string $orderId, int $reason, ?string $note = null, string $customerId): Order
     {
+        $order = Order::select(['id', 'order_number', 'order_status', 'customer_id', 'cancelled_by'])
+            ->where('id', $orderId)
+            ->where('customer_id', $customerId)
+            ->firstOrFail();
+
         $this->validateCancellable($order);
 
         $order->update([
@@ -27,7 +33,7 @@ class CustomerOrderService
             'cancellation_note'   => $note,
         ]);
 
-        $order->customer->notify(new OrderCancelledNotification($order));
+        auth()->user()?->notify(new OrderCancelledNotification(orderId: $order->id, orderNumber: $order->order_number, cancelledBy: $order->cancelled_by, cancellationNote: $order->cancellation_note));
 
         return $order;
     }

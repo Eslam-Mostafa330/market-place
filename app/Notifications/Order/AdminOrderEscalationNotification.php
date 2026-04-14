@@ -5,8 +5,9 @@ namespace App\Notifications\Order;
 use App\Models\Order;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
+use Illuminate\Contracts\Queue\ShouldQueue;
 
-class AdminOrderEscalationNotification extends Notification
+class AdminOrderEscalationNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -26,6 +27,18 @@ class AdminOrderEscalationNotification extends Notification
     public function via(object $notifiable): array
     {
         return ['database'];
+    }
+
+    /**
+     * Specify the queue name for notification channels.
+     *
+     * @return array<string, string>
+     */
+    public function viaQueues(): array
+    {
+        return [
+            'database' => 'admin-order-escalation',
+        ];
     }
 
     /**

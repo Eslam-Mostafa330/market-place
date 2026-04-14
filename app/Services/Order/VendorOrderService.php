@@ -18,8 +18,15 @@ class VendorOrderService
      * Then moves the order to accepted status.
      * Notifies the customer that their order has been accepted and is being prepared.
      */
-    public function acceptOrder(Order $order): Order
+    public function acceptOrder(string $orderId): Order
     {
+        $storeId = auth()->user()->store?->id;
+
+        $order = Order::select(['id', 'order_number', 'order_status', 'customer_id'])
+            ->where('id', $orderId)
+            ->where('store_id', $storeId)
+            ->firstOrFail();
+
         $this->validateOrderStatus($order, OrderStatus::PENDING, __('vendors.ensure_pending_orders'));
 
         $order->update(['order_status' => OrderStatus::ACCEPTED]);
@@ -35,11 +42,20 @@ class VendorOrderService
      * Validates that The order is still in accepted status
      * Then Moves order from accepted to preparing.
      */
-    public function prepareOrder(Order $order): Order
+    public function prepareOrder(string $orderId): Order
     {
+        $storeId = auth()->user()->store?->id;
+
+        $order = Order::select(['id', 'order_number', 'order_status', 'customer_id'])
+            ->where('id', $orderId)
+            ->where('store_id', $storeId)
+            ->firstOrFail();
+
         $this->validateOrderStatus($order, OrderStatus::ACCEPTED, __('vendors.ensure_accepted_orders'));
 
         $order->update(['order_status' => OrderStatus::PREPARING]);
+
+        User::query()->select('id')->find($order->customer_id)?->notify(new OrderStatusUpdatedNotification($order->id, $order->order_number, $order->order_status, __('notifications.order_preparing')));
 
         return $order;
     }
@@ -51,8 +67,15 @@ class VendorOrderService
      * Then moves the order to waiting rider status and sets the rider search start time.
      * The trigger point for the rider search job.
      */
-    public function markReady(Order $order): Order
+    public function markReady(string $orderId): Order
     {
+        $storeId = auth()->user()->store?->id;
+
+        $order = Order::select(['id', 'order_number', 'order_status', 'customer_id'])
+            ->where('id', $orderId)
+            ->where('store_id', $storeId)
+            ->firstOrFail();
+
         $this->validateOrderStatus($order, OrderStatus::PREPARING, __('vendors.ensure_preparing_orders'));
 
         $order->update([

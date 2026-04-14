@@ -32,9 +32,9 @@ Route::controller(NotificationController::class)->prefix('notifications')->group
 
 # ----- Order Routes
 Route::controller(OrderController::class)->prefix('orders')->group(function () {
-    Route::post('/{order}/reject', 'reject');
-    Route::post('/{order}/pickup', 'pickup');
-    Route::post('/{order}/deliver', 'deliver');
+    Route::post('/{orderId}/reject', 'reject');
+    Route::post('/{orderId}/pickup', 'pickup');
+    Route::post('/{orderId}/deliver', 'deliver');
 });
 
 # ----- Payout Routes

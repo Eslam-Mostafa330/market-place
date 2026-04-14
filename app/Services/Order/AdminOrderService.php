@@ -18,19 +18,30 @@ class AdminOrderService
      *
      * Admin picks the rider manually.
      * Ensure the order is still waiting for a rider before allowing manual assignment.
+     * Set a manual relation to display rider's minimal info
      */
-    public function assignRider(Order $order, User $rider): Order
+    public function assignRider(string $orderId, string $riderId): Order
     {
+        $order = Order::select(['id', 'order_status', 'store_branch_id'])
+            ->with('storeBranch:id,slug')
+            ->findOrFail($orderId);
+
         $this->ensureOrderStatus($order, [OrderStatus::WAITING_RIDER], __('orders.not_waiting_status'));
+
+        $rider = User::select(['id', 'role', 'name', 'phone'])
+            ->with('riderProfile:id,user_id,rider_availability')
+            ->findOrFail($riderId);
 
         $this->ensureAvailableRider($rider);
 
         $order->update([
-            'rider_id'     => $rider->id,
+            'rider_id'     => $riderId,
             'order_status' => OrderStatus::RIDER_ASSIGNED,
         ]);
 
-        $rider->notify(new RiderAssignedNotification($order->id, $order->storeBranch->slug));
+        $order->setRelation('rider', $rider);
+
+        $rider->notify(new RiderAssignedNotification(orderId: $order->id, branchSlug: $order->storeBranch->slug));
 
         return $order;
     }
@@ -42,8 +53,12 @@ class AdminOrderService
      * Ensure the order is not in a not canceled or delivered status before allowing cancellation.
      * Notify the customer about the cancellation with the reason and note for better transparency and communication.
      */
-    public function cancelOrder(Order $order, ?string $note = null): Order
+    public function cancelOrder(string $orderId, ?string $note = null): Order
     {
+        $order = Order::select(['id', 'order_number', 'order_status', 'customer_id', 'cancelled_by', 'cancellation_reason', 'cancellation_note'])
+            ->with('customer:id')
+            ->findOrFail($orderId);
+
         $nonCancellableStatuses = OrderStatus::nonCancellableStatuses();
 
         $this->ensureOrderStatus($order, $nonCancellableStatuses, __('orders.cannot_cancel'), false);
@@ -55,7 +70,7 @@ class AdminOrderService
             'cancellation_note'   => $note,
         ]);
 
-        $order->customer->notify(new OrderCancelledNotification($order));
+        $order->customer?->notify(new OrderCancelledNotification(orderId: $order->id, orderNumber: $order->order_number, cancelledBy: $order->cancelled_by, cancellationNote: $order->cancellation_note));
 
         return $order;
     }
@@ -67,8 +82,11 @@ class AdminOrderService
      * Ensures the order is still waiting for a rider before allowing extension.
      * Admin manually triggers this when escalation notification is received.
      */
-    public function extendSearch(Order $order): Order
+    public function extendSearch(string $orderId): Order
     {
+        $order = Order::select(['id', 'order_status', 'rider_assignment_attempts', 'rider_search_started_at'])
+            ->findOrFail($orderId);
+
         $this->ensureOrderStatus($order, [OrderStatus::WAITING_RIDER], __('orders.not_waiting_status'));
 
         $order->update([

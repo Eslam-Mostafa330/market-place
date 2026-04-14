@@ -62,9 +62,9 @@ Route::middleware('vendor.verified')->group(function () {
     Route::controller(OrderController::class)->prefix('orders')->group(function () {
         Route::get('/', 'index');
         Route::get('/{order}', 'show');
-        Route::post('/{order}/accept', 'accept');
-        Route::post('/{order}/prepare', 'prepare');
-        Route::post('/{order}/ready', 'ready');
+        Route::post('/{orderId}/accept', 'accept');
+        Route::post('/{orderId}/prepare', 'prepare');
+        Route::post('/{orderId}/ready', 'ready');
     });
 
     # ----- Payout Routes

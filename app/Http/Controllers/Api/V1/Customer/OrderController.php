@@ -27,7 +27,7 @@ class OrderController extends BaseApiController
     public function index(): AnonymousResourceCollection
     {
         $orders = Order::select('id', 'store_id', 'store_branch_id', 'order_number', 'order_status', 'payment_status', 'total', 'created_at')
-            ->where('customer_id', auth()->user()->id)
+            ->where('customer_id', auth()->id())
             ->with(['store:id,name', 'storeBranch:id,name'])
             ->useFilters()
             ->latest()
@@ -86,11 +86,10 @@ class OrderController extends BaseApiController
     /**
      * Customer cancels their order.
      */
-    public function cancel(CancelOrderRequest $request, Order $order)
+    public function cancel(CancelOrderRequest $request, string $orderId)
     {
-        $this->authorizeOrder($order);
         $data = $request->validated();
-        $order = $this->customerOrderService->cancelOrder($order, $data['reason'], $data['note']);
+        $order = $this->customerOrderService->cancelOrder($orderId, $data['reason'], $data['note'], auth()->id());
         return $this->apiResponse(new OrderCancellationResource($order));
     }
 }

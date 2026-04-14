@@ -3,45 +3,38 @@
 namespace App\Http\Controllers\Api\V1\Rider;
 
 use App\Http\Controllers\Api\BaseApiController;
-use App\Http\Controllers\Api\V1\Rider\Concerns\RiderOrderAuthorization;
 use App\Http\Resources\Rider\Order\OrderDeliverResource;
 use App\Http\Resources\Rider\Order\OrderResource;
-use App\Models\Order;
 use App\Services\Order\RiderOrderService;
 
 class OrderController extends BaseApiController
 {
-    use RiderOrderAuthorization;
-
     public function __construct(private readonly RiderOrderService $riderOrderService) {}
 
     /**
      * Rider rejects the order, triggers automatic re-search.
      */
-    public function reject(Order $order)
+    public function reject(string $orderId)
     {
-        $this->authorizeRiderOrder($order);
-        $order = $this->riderOrderService->rejectOrder($order);
+        $order = $this->riderOrderService->rejectOrder($orderId, auth()->id());
         return $this->apiResponse(new OrderResource($order));
     }
 
     /**
      * Rider confirms pickup.
      */
-    public function pickup(Order $order)
+    public function pickup(string $orderId)
     {
-        $this->authorizeRiderOrder($order);
-        $order = $this->riderOrderService->pickupOrder($order);
+        $order = $this->riderOrderService->pickupOrder($orderId, auth()->id());
         return $this->apiResponse(new OrderResource($order));
     }
 
     /**
      * Rider marks order as delivered.
      */
-    public function deliver(Order $order)
+    public function deliver(string $orderId)
     {
-        $this->authorizeRiderOrder($order);
-        $order = $this->riderOrderService->deliverOrder($order);
+        $order = $this->riderOrderService->deliverOrder($orderId, auth()->id());
         return $this->apiResponse(new OrderDeliverResource($order));
     }
 }

@@ -229,10 +229,10 @@ class PlaceOrderService
 
         $vendorUser = User::join('vendor_profiles', 'vendor_profiles.user_id', '=', 'users.id')
             ->where('vendor_profiles.id', $branch->store->vendor_profile_id)
-            ->select('users.*')
+            ->select('users.id')
             ->first();
 
-        $vendorUser?->notify(new NewOrderNotification(order: $order, itemsCount: count($items), branchName: $branch->name, storeName: $branch->store->name));
+        $vendorUser?->notify(new NewOrderNotification(orderId: $order->id, orderNumber: $order->order_number, total: $order->total, itemsCount: count($items), branchName: $branch->name, storeName: $branch->store->name));
 
         $order->setRelation(
             'items',

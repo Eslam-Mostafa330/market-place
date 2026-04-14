@@ -28,7 +28,7 @@ Route::controller(FavoriteController::class)->prefix('favorites')->group(functio
 
 # ----- Order Routes
 Route::apiResource('orders', OrderController::class)->except('update', 'destroy');
-Route::post('orders/{order}/cancel', [OrderController::class, 'cancel']);
+Route::post('orders/{orderId}/cancel', [OrderController::class, 'cancel']);
 
 # ----- Notification Routes
 Route::controller(NotificationController::class)->prefix('notifications')->group(function () {

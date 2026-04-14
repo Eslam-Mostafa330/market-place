@@ -77,9 +77,9 @@ Route::controller(NotificationController::class)->prefix('notifications')->group
 Route::controller(OrderController::class)->prefix('orders')->group(function () {
     Route::get('/', 'index');
     Route::get('/{order}', 'show');
-    Route::post('/{order}/assign-rider', 'assignRider');
-    Route::post('/{order}/cancel', 'cancel');
-    Route::post('/{order}/extend-search', 'extendSearch');
+    Route::post('/{orderId}/assign-rider', 'assignRider');
+    Route::post('/{orderId}/cancel', 'cancel');
+    Route::post('/{orderId}/extend-search', 'extendSearch');
 });
 
 # ----- Rider Payout Routes

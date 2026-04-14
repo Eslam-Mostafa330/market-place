@@ -47,30 +47,27 @@ class OrderController extends BaseApiController
     /**
      * Vendor accepts the pending order.
      */
-    public function accept(Order $order): JsonResponse
+    public function accept(string $orderId): JsonResponse
     {
-        $this->authorizeOrder($order);
-        $acceptedOrder = $this->vendorOrderService->acceptOrder($order);
+        $acceptedOrder = $this->vendorOrderService->acceptOrder($orderId);
         return $this->apiResponseUpdated(new OrderStatusResource($acceptedOrder));
     }
 
     /**
      * Vendor prepares the order.
      */
-    public function prepare(Order $order): JsonResponse
+    public function prepare(string $orderId): JsonResponse
     {
-        $this->authorizeOrder($order);
-        $preparedOrder = $this->vendorOrderService->prepareOrder($order);
+        $preparedOrder = $this->vendorOrderService->prepareOrder($orderId);
         return $this->apiResponseUpdated(new OrderStatusResource($preparedOrder));
     }
 
     /**
      * Vendor marks the order as ready for pickup.
      */
-    public function ready(Order $order): JsonResponse
+    public function ready(string $orderId): JsonResponse
     {
-        $this->authorizeOrder($order);
-        $readyOrder = $this->vendorOrderService->markReady($order);
+        $readyOrder = $this->vendorOrderService->markReady($orderId);
         return $this->apiResponseUpdated(new OrderStatusResource($readyOrder));
     }
 }

@@ -29,8 +29,13 @@ class RiderOrderService
      * Unassigns the rider and restarts the search automatically.
      * The order goes back to waiting for a rider and FindRiderJob fires again with a fresh 5 minute window.
      */
-    public function rejectOrder(Order $order): Order
+    public function rejectOrder(string $orderId, string $riderId): Order
     {
+        $order = Order::select(['id', 'rider_id', 'order_status', 'order_number'])
+            ->where('id', $orderId)
+            ->where('rider_id', $riderId)
+            ->firstOrFail();
+
         $this->validateStatus($order, OrderStatus::RIDER_ASSIGNED, __('riders.cannot_reject'));
 
         $order->update([
@@ -50,8 +55,13 @@ class RiderOrderService
      * Validates that the order is in the correct status for pickup before allowing the status change.
      * Notifies the customer that their order is on the way after pickup.
      */
-    public function pickupOrder(Order $order): Order
+    public function pickupOrder(string $orderId, string $riderId): Order
     {
+        $order = Order::select(['id', 'order_number', 'order_status', 'customer_id'])
+            ->where('id', $orderId)
+            ->where('rider_id', $riderId)
+            ->firstOrFail();
+
         $this->validateStatus($order, OrderStatus::RIDER_ASSIGNED, __('riders.cannot_pickup'));
 
         $order->update(['order_status' => OrderStatus::PICKED_UP]);
@@ -67,11 +77,19 @@ class RiderOrderService
      * Mark the order as delivered.
      * Validates that the order is in the correct status for delivery.
      * Create payout record for VISA orders automatically for riders and vendors.
+     * Award the customer with their deserved points via the loyaltyService
+     * Load the vendorProfile relationship as it's necessary to complete the vendor payout
      * Notifies the customer that their order has been delivered after delivery.
      */
-    public function deliverOrder(Order $order): Order
+    public function deliverOrder(string $orderId, string $riderId): Order
     {
-        $order = DB::transaction(function () use ($order) {
+        $order = DB::transaction(function () use ($orderId, $riderId) {
+            $order = Order::select(['id', 'rider_id', 'store_id', 'order_number', 'order_status', 'customer_id', 'payment_method', 'discount', 'subtotal', 'wallet_discount'])
+                ->with('store.vendorProfile:id,user_id')
+                ->where('id', $orderId)
+                ->where('rider_id', $riderId)
+                ->firstOrFail();
+
             $this->validateStatus($order, OrderStatus::PICKED_UP, __('riders.cannot_deliver'));
 
             $order->update([

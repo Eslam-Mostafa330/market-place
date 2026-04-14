@@ -3,11 +3,9 @@
 namespace App\Notifications\Order;
 
 use App\Enums\OrderStatus;
-use App\Models\Order;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
-use Illuminate\Validation\Rules\Enum;
 
 class OrderStatusUpdatedNotification extends Notification implements ShouldQueue
 {
@@ -23,13 +21,6 @@ class OrderStatusUpdatedNotification extends Notification implements ShouldQueue
         private readonly string $message
     ) {}
 
-    public function viaQueues(): array
-    {
-        return [
-            'database' => 'order-status-change',
-        ];
-    }
-
     /**
      * Get the notification's delivery channels.
      *
@@ -38,6 +29,18 @@ class OrderStatusUpdatedNotification extends Notification implements ShouldQueue
     public function via(object $notifiable): array
     {
         return ['database'];
+    }
+
+    /**
+     * Specify the queue name for notification channels.
+     *
+     * @return array<string, string>
+     */
+    public function viaQueues(): array
+    {
+        return [
+            'database' => 'order-status-change',
+        ];
     }
 
     /**

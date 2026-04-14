@@ -10,7 +10,6 @@ use App\Http\Resources\Admin\Order\OrderListResource;
 use App\Http\Resources\Admin\Order\OrderMinimalResource;
 use App\Http\Resources\Admin\Order\OrderResource;
 use App\Models\Order;
-use App\Models\User;
 use App\Services\Order\AdminOrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -45,31 +44,29 @@ class OrderController extends BaseApiController
     /**
      * Manually assign a rider to an order.
      */
-    public function assignRider(AssignRiderRequest $request, Order $order)
+    public function assignRider(AssignRiderRequest $request, string $orderId)
     {
         $data = $request->validated();
-        $rider = User::findOrFail($data['rider_id']);
-        $order = $this->adminOrderService->assignRider($order, $rider);
-        $order->setRelations(['rider' => $rider]);
+        $order = $this->adminOrderService->assignRider($orderId, $data['rider_id']);
         return $this->apiResponseUpdated(new OrderMinimalResource($order));
     }
 
     /**
      * Cancel an order with an optional note.
      */
-    public function cancel(CancelOrderRequest $request, Order $order)
+    public function cancel(CancelOrderRequest $request, string $orderId)
     {
         $data = $request->validated();
-        $order = $this->adminOrderService->cancelOrder($order, $data['note']);
+        $order = $this->adminOrderService->cancelOrder($orderId, $data['note']);
         return $this->apiResponse(new CanceledOrderResource($order));
     }
 
     /**
      * Extend the automatic rider search for another 5 minutes.
      */
-    public function extendSearch(Order $order)
+    public function extendSearch(string $orderId)
     {
-        $order = $this->adminOrderService->extendSearch($order);
+        $order = $this->adminOrderService->extendSearch($orderId);
         return $this->apiResponse(new OrderMinimalResource($order));
     }
 }
