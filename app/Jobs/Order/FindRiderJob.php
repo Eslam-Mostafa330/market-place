@@ -11,8 +11,9 @@ use App\Notifications\Order\RiderAssignedNotification;
 use App\Services\RiderLocationService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 
-class FindRiderJob implements ShouldQueue
+class FindRiderJob implements ShouldQueue, ShouldBeUnique
 {
     use Queueable;
 
@@ -35,9 +36,9 @@ class FindRiderJob implements ShouldQueue
     /**
      * Create a new job instance.
      */
-    public function __construct(public readonly Order $order)
+    public function __construct(public readonly string $orderId)
     {
-        //
+        $this->onQueue('rider-matching');
     }
 
     /**
@@ -45,7 +46,7 @@ class FindRiderJob implements ShouldQueue
      */
     public function uniqueId(): string
     {
-        return $this->order->id;
+        return $this->orderId;
     }
 
     /**
@@ -59,14 +60,21 @@ class FindRiderJob implements ShouldQueue
      */
     public function handle(RiderLocationService $riderService): void
     {
-        $order = $this->order->fresh();
+        $order = Order::query()
+            ->select('id', 'order_status', 'store_branch_id', 'rider_assignment_attempts')
+            ->with('storeBranch:id,latitude,longitude,slug')
+            ->find($this->orderId);
 
-        if ($order->order_status !== OrderStatus::WAITING_RIDER) {
+        if (! $order || $order->order_status !== OrderStatus::WAITING_RIDER) {
             return;
         }
 
         $branch = $order->storeBranch;
-        $nearestRider = $riderService->findNearestRider((float) $branch->latitude, (float) $branch->longitude);
+
+        $nearestRider = $riderService->findNearestRider(
+            (float) $branch->latitude,
+            (float) $branch->longitude
+        );
 
         if ($nearestRider) {
             $this->assignRider($order, $nearestRider);
@@ -74,6 +82,7 @@ class FindRiderJob implements ShouldQueue
         }
 
         $order->increment('rider_assignment_attempts');
+        $order->refresh();
 
         if ($order->rider_assignment_attempts >= $this->tries) {
             $this->escalateToAdmin($order);
@@ -97,7 +106,7 @@ class FindRiderJob implements ShouldQueue
 
         $branchSlug = $order->storeBranch->slug;
 
-        User::find($riderData['user_id']) ?->notify(new RiderAssignedNotification($order, $branchSlug));
+        User::query()->select('id')->find($riderData['user_id'])?->notify(new RiderAssignedNotification($order->id, $branchSlug));
     }
 
     /**
@@ -108,9 +117,10 @@ class FindRiderJob implements ShouldQueue
     private function escalateToAdmin(Order $order): void
     {
         User::where('role', UserRole::ADMIN)
+            ->select('id')
             ->get()
             ->each(fn ($admin) => $admin->notify(
-                new AdminOrderEscalationNotification($order)
+                new AdminOrderEscalationNotification($order->id)
             ));
     }
 
@@ -123,9 +133,9 @@ class FindRiderJob implements ShouldQueue
      */
     public function failed(): void
     {
-        $order = $this->order->fresh();
+        $order = Order::find($this->orderId);
 
-        if ($order?->order_status !== OrderStatus::WAITING_RIDER) {
+        if (! $order || $order->order_status !== OrderStatus::WAITING_RIDER) {
             return;
         }
 

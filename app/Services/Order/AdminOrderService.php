@@ -30,7 +30,7 @@ class AdminOrderService
             'order_status' => OrderStatus::RIDER_ASSIGNED,
         ]);
 
-        $rider->notify(new RiderAssignedNotification($order, $order->storeBranch->slug));
+        $rider->notify(new RiderAssignedNotification($order->id, $order->storeBranch->slug));
 
         return $order;
     }
@@ -76,7 +76,7 @@ class AdminOrderService
             'rider_search_started_at'   => now(),
         ]);
 
-        FindRiderJob::dispatch($order);
+        FindRiderJob::dispatch($order->id);
 
         return $order;
     }

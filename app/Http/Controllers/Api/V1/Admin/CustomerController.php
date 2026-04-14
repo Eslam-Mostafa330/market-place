@@ -12,6 +12,7 @@ use App\Http\Resources\Admin\CustomerUser\ToggleCustomerStatusResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
 
 class CustomerController extends BaseApiController
 {
@@ -28,9 +29,14 @@ class CustomerController extends BaseApiController
 
     public function store(CreateCustomerRequest $request): JsonResponse
     {
-        $data = $request->validated();
-        $data['role'] = UserRole::CUSTOMER;
-        $user = User::create($data);
+        $user = DB::transaction(function () use ($request) {
+            $data = $request->validated();
+            $data['role'] = UserRole::CUSTOMER;
+            $user = User::create($data);
+            $user->customerProfile()->create();
+            return $user;
+        });
+
         return $this->apiResponseStored(new CustomerUserResource($user));
     }
 

@@ -15,11 +15,12 @@ class ProfileResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'        => $this->id,
-            'name'      => $this->name,
-            'email'     => $this->email,
-            'phone'     => $this->phone,
-            'joined_at' => $this->created_at,
+            'id'               => $this->id,
+            'name'             => $this->name,
+            'email'            => $this->email,
+            'phone'            => $this->phone,
+            'joined_at'        => $this->created_at,
+            'customer_profile' => new CustomerProfileResource($this->whenLoaded('customerProfile')),
         ];
     }
 }

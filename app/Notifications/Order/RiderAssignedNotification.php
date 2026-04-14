@@ -13,7 +13,7 @@ class RiderAssignedNotification extends Notification
     /**
      * Create a new notification instance.
      */
-    public function __construct(private readonly Order $order, private readonly string $branchSlug)
+    public function __construct(private readonly string $orderId, private readonly string $branchSlug)
     {
         //
     }
@@ -38,17 +38,29 @@ class RiderAssignedNotification extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $order = Order::select(
+            'id',
+            'order_number',
+            'delivery_address_line',
+            'delivery_city',
+            'delivery_latitude',
+            'delivery_longitude',
+            'delivery_phone',
+            'rider_earnings'
+        )
+        ->find($this->orderId);
+
         return [
-            'order_id'          => $this->order->id,
-            'order_number'      => $this->order->order_number,
-            'store_branch_slug' => $this->branchSlug,
-            'delivery_address'  => $this->order->delivery_address_line,
-            'delivery_city'     => $this->order->delivery_city,
-            'delivery_lat'      => $this->order->delivery_latitude,
-            'delivery_lng'      => $this->order->delivery_longitude,
-            'delivery_phone'    => $this->order->delivery_phone,
-            'rider_earnings'    => $this->order->rider_earnings,
-            'message'           => __('notifications.rider_assigned'),
+            'order_id'           => $order->id,
+            'order_number'       => $order->order_number,
+            'store_branch_slug'  => $this->branchSlug,
+            'delivery_address'   => $order->delivery_address_line,
+            'delivery_city'      => $order->delivery_city,
+            'delivery_latitude'  => $order->delivery_latitude,
+            'delivery_longitude' => $order->delivery_longitude,
+            'delivery_phone'     => $order->delivery_phone,
+            'rider_earnings'     => $order->rider_earnings,
+            'message'            => __('notifications.rider_assigned'),
         ];
     }
 }

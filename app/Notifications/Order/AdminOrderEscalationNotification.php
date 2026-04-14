@@ -13,7 +13,7 @@ class AdminOrderEscalationNotification extends Notification
     /**
      * Create a new notification instance.
      */
-    public function __construct(private readonly Order $order)
+    public function __construct(private readonly string $orderId)
     {
         //
     }
@@ -36,13 +36,24 @@ class AdminOrderEscalationNotification extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $order = Order::query()
+        ->select(
+            'id',
+            'order_number',
+            'store_branch_id',
+            'rider_assignment_attempts',
+            'rider_search_started_at',
+            'total'
+        )
+        ->find($this->orderId);
+
         return [
-            'order_id'        => $this->order->id,
-            'order_number'    => $this->order->order_number,
-            'store_branch_id' => $this->order->store_branch_id,
-            'attempts'        => $this->order->rider_assignment_attempts,
-            'waiting_since'   => $this->order->rider_search_started_at,
-            'total'           => $this->order->total,
+            'order_id'        => $order->id,
+            'order_number'    => $order->order_number,
+            'store_branch_id' => $order->store_branch_id,
+            'attempts'        => $order->rider_assignment_attempts,
+            'waiting_since'   => $order->rider_search_started_at,
+            'total'           => $order->total,
             'message'         => __('notifications.order_escalation'),
         ];
     }

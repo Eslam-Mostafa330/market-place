@@ -47,7 +47,7 @@ class ProfileController extends BaseApiController
         $data = $request->validated();
         $this->authService->logoutOtherDevicesOnPasswordChange($rider, $data, $request);
         $rider->update($data);
-        $this->clearRiderSummaryCache($rider->id);
+        $rider->wasChanged('name') && $this->clearRiderSummaryCache($rider->id);
         return $this->apiResponseUpdated(new ProfileResource($rider));
     }
 }

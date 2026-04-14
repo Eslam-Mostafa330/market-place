@@ -60,7 +60,7 @@ class VendorOrderService
             'rider_search_started_at' => now(),
         ]);
 
-        FindRiderJob::dispatch($order);
+        FindRiderJob::dispatch($order->id);
 
         return $order;
     }

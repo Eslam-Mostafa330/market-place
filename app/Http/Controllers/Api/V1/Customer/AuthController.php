@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends BaseApiController
 {
@@ -21,9 +22,13 @@ class AuthController extends BaseApiController
      */
     public function register(RegisterRequest $request): JsonResponse
     {
-        $customerData = $request->validated();
-        $customerData['role'] = UserRole::CUSTOMER;
-        $customer = User::create($customerData);
+        $customer = DB::transaction(function () use ($request) {
+            $customerData = $request->validated();
+            $customerData['role'] = UserRole::CUSTOMER;
+            $customer = User::create($customerData);
+            $customer->customerProfile()->create();
+            return $customer;
+        });
 
         return $this->apiResponseStored(new RegisterResource($customer));
     }
@@ -58,7 +63,6 @@ class AuthController extends BaseApiController
     public function refreshToken(Request $request): JsonResponse
     {
         $result = $this->authService->refresh($request->user());
-
         return $this->apiResponse($result, __('auth.token_refreshed'));
     }
 
@@ -69,7 +73,6 @@ class AuthController extends BaseApiController
     public function logout(Request $request): JsonResponse
     {
         $this->authService->logout($request->user());
-
         return $this->apiResponse([], __('auth.logged_out'));
     }
 }

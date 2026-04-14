@@ -18,10 +18,11 @@ class UpdateCustomerProfileRequest extends FormRequest
         $user = $this->user();
 
         return [
-            'name'     => ['sometimes', 'required', 'string', 'min:2', 'max:255'],
-            'email'    => ['sometimes', 'required', 'max:255', Rule::email()->strict()->preventSpoofing(), Rule::unique('users')->ignore($user->id)],
-            'password' => ['sometimes', 'nullable', 'confirmed', 'max:100', Password::defaults()],
-            'phone'    => ['sometimes', 'nullable', 'string', 'regex:/^[0-9\s\-\+\(\)]+$/', 'max:25', Rule::unique('users')->ignore($user->id)],
+            'name'          => ['sometimes', 'required', 'string', 'min:2', 'max:255'],
+            'email'         => ['sometimes', 'required', 'max:255', Rule::email()->strict()->preventSpoofing(), Rule::unique('users')->ignore($user->id)],
+            'password'      => ['sometimes', 'nullable', 'confirmed', 'max:100', Password::defaults()],
+            'phone'         => ['sometimes', 'nullable', 'string', 'regex:/^[0-9\s\-\+\(\)]+$/', 'max:25', Rule::unique('users')->ignore($user->id)],
+            'date_of_birth' => ['sometimes', 'nullable', 'date', 'before:today'],
         ];
     }
 }
