@@ -10,6 +10,7 @@ use App\Filters\OrderFilters;
 use Essa\APIToolKit\Filters\Filterable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Order extends BaseModel
 {
@@ -137,5 +138,14 @@ class Order extends BaseModel
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    /**
+     * Get the review associated with an order.
+     * Each order can have at most one review submitted by the customer.
+     */
+    public function review(): HasOne
+    {
+        return $this->hasOne(Review::class);
     }
 }

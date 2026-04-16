@@ -32,6 +32,8 @@ class Store extends BaseModel
         'logo',
         'image',
         'commission_rate',
+        'average_rating',
+        'reviews_count',
     ];
 
     /**
@@ -43,6 +45,7 @@ class Store extends BaseModel
     {
         return [
             'commission_rate' => 'decimal:2',
+            'average_rating'  => 'decimal:1',
         ];
     }
 

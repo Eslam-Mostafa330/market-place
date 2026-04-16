@@ -23,6 +23,7 @@ class OrderListResource extends JsonResource
             'created_at'        => $this->created_at,
             'store_name'        => $this->store->name,
             'store_branch_name' => $this->storeBranch->name,
+            'is_reviewed'       => (bool) $this->review_exists,
         ];
     }
 }

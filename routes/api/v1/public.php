@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Public\StoreBranchController;
 use App\Http\Controllers\Api\V1\Public\StoreController;
 use App\Http\Controllers\Api\V1\Public\StoreProductCategoryController;
 use App\Http\Controllers\Api\V1\Public\StoreProductController;
+use App\Http\Controllers\Api\V1\Public\StoreReviewController;
 use App\Http\Controllers\Api\V1\Public\StripeWebhookController;
 use Illuminate\Support\Facades\Route;
 
@@ -34,6 +35,9 @@ Route::controller(StoreProductController::class)->prefix('stores/{store:slug}/pr
     Route::get('/', 'index');
     Route::get('/{product:slug}', 'show');
 });
+
+# ----- Store Review Routes
+Route::get('stores/{store:slug}/reviews', StoreReviewController::class);
 
 # ----- Favorite Routes
 Route::post('favorites/toggle', [FavoriteController::class, 'toggle'])->middleware(['auth:sanctum', 'isCustomer']);

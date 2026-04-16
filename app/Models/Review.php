@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Essa\APIToolKit\Filters\Filterable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Review extends BaseModel
 {
+    use Filterable;
+
     /**
      * The attributes that are mass assignable.
      *
@@ -22,7 +25,6 @@ class Review extends BaseModel
     /**** ************* ****/
     /**** Relationships ****/
     /**** ************* ****/
-
     /**
     * The review could be given by a customer
     */

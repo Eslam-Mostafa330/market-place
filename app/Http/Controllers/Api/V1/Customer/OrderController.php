@@ -29,6 +29,7 @@ class OrderController extends BaseApiController
         $orders = Order::select('id', 'store_id', 'store_branch_id', 'order_number', 'order_status', 'payment_status', 'total', 'created_at')
             ->where('customer_id', auth()->id())
             ->with(['store:id,name', 'storeBranch:id,name'])
+            ->withExists('review')
             ->useFilters()
             ->latest()
             ->dynamicPaginate();
@@ -43,7 +44,8 @@ class OrderController extends BaseApiController
         $order->load([
             'store:id,name',
             'storeBranch:id,name',
-            'items:id,order_id,product_id,product_name,quantity,unit_price,subtotal'
+            'review:id,order_id,rate,full_review',
+            'items:id,order_id,product_id,product_name,quantity,unit_price,subtotal',
         ]);
 
         $order->setRelation('delivery', $order);

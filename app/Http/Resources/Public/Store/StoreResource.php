@@ -23,6 +23,8 @@ class StoreResource extends JsonResource
             'name'                  => $this->name,
             'slug'                  => $this->slug,
             'logo'                  => $this->logo_url,
+            'average_rating'        => (float) $this->average_rating,
+            'reviews_count'         => $this->reviews_count,
             'image'                 => $this->whenExists($this->image_url),
             'description'           => $this->whenExists($this->description),
             'active_branches_count' => $this->active_branches_count,

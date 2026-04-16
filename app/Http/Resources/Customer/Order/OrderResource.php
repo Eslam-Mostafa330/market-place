@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Customer\Order;
 
+use App\Http\Resources\Customer\Review\ReviewResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -29,6 +30,7 @@ class OrderResource extends JsonResource
             'store_name'        => $this->store->name,
             'store_branch_name' => $this->storeBranch->name,
             'created_at'        => $this->created_at,
+            'review'            => new ReviewResource($this->whenLoaded('review')),
             'delivery'          => new OrderDeliveryResource($this->whenLoaded('delivery')),
             'items'             => OrderItemResource::collection($this->whenLoaded('items')),
         ];

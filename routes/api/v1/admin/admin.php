@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Admin\CustomerController;
 use App\Http\Controllers\Api\V1\Admin\NotificationController;
 use App\Http\Controllers\Api\V1\Admin\OrderController;
 use App\Http\Controllers\Api\V1\Admin\ProfileController;
+use App\Http\Controllers\Api\V1\Admin\ReviewController;
 use App\Http\Controllers\Api\V1\Admin\RiderController;
 use App\Http\Controllers\Api\V1\Admin\SettingController;
 use App\Http\Controllers\Api\V1\Admin\StoreBranchController;
@@ -64,6 +65,9 @@ Route::apiResource('stores.branches', StoreBranchController::class)->except('upd
 
 # ----- Store Product Routes
 Route::apiResource('stores.products', StoreProductController::class)->except('update', 'store')->scoped();
+
+# ----- Review Routes
+Route::apiResource('reviews', ReviewController::class)->only('index', 'destroy');
 
 # ----- Notification Routes
 Route::controller(NotificationController::class)->prefix('notifications')->group(function () {
