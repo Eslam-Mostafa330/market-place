@@ -42,9 +42,9 @@ class PlaceOrderService
      */
     public function handle(array $data): array
     {
-        ['branch' => $branch, 'address' => $address, 'coupon' => $coupon] = $this->validateOrder($data);
+        return DB::transaction(function () use ($data) {
+            ['branch' => $branch, 'address' => $address, 'coupon' => $coupon] = $this->validateOrder($data);
 
-        return DB::transaction(function () use ($data, $branch, $address, $coupon) {
             $items = $this->resolveItems($data['items'], $branch);
 
             ['discount' => $walletDiscount, 'profile' => $walletProfile] = $this->resolveWalletDiscount($data);
@@ -57,9 +57,7 @@ class PlaceOrderService
                 $this->loyaltyService->deductWalletBalance($walletProfile, $pricing['wallet_discount']);
             }
 
-            $payment = $this->handlePayment($order);
-
-            return ['order' => $order, 'payment' => $payment];
+            return ['order' => $order, 'payment' => $this->handlePayment($order)];
         });
     }
 
@@ -99,7 +97,7 @@ class PlaceOrderService
      */
     private function validateCoupon(string $code, StoreBranch $branch): Coupon
     {
-        $coupon = Coupon::where('code', $code)->firstOrFail();
+        $coupon = Coupon::where('code', $code)->lockForUpdate()->firstOrFail();
 
         if ($coupon->status !== DefineStatus::ACTIVE) {
             throw new UnprocessableEntityHttpException(__('orders.coupon_inactive'));
@@ -380,25 +378,25 @@ class PlaceOrderService
     }
 
     /**
-     * Generate a unique sequential order number for the current day.
+     * Generate a daily order number based on the current date and order count.
      *
      * Format: ORD-YYYYMMDD-00001
      *
-     * The sequence resets daily and increments per order. This method is designed
-     * to be executed within a database transaction using row-level locking
-     * to prevent duplicate sequence numbers under concurrent requests.
+     * The sequence is derived by counting today's existing orders and adding one.
+     * This provides a simple incremental number per day, but it is not a true
+     * database sequence and may be prone to race conditions under high concurrency
+     * unless used within a transaction with proper locking.
      *
      * @return string Generated order number
      */
     private function generateOrderNumber(): string
     {
-        $date      = now()->format('Ymd');
-        $lastOrder = Order::whereDate('created_at', today())->lockForUpdate()->latest('created_at')->first();
+        $today = today()->toDateString();
 
-        $sequence = $lastOrder
-            ? ((int) substr($lastOrder->order_number, -5)) + 1
-            : 1;
+        $sequence = Order::whereDate('created_at', $today)
+            ->lockForUpdate()
+            ->count() + 1;
 
-        return 'ORD-' . $date . '-' . str_pad($sequence, 5, '0', STR_PAD_LEFT);
+        return 'ORD-' . now()->format('Ymd') . '-' . str_pad($sequence, 5, '0', STR_PAD_LEFT);
     }
 }
