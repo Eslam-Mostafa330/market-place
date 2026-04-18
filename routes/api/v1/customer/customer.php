@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\Customer\FavoriteController;
 use App\Http\Controllers\Api\V1\Customer\LoyaltyController;
 use App\Http\Controllers\Api\V1\Customer\NotificationController;
 use App\Http\Controllers\Api\V1\Customer\OrderController;
+use App\Http\Controllers\Api\V1\Customer\PreferencesController;
 use App\Http\Controllers\Api\V1\Customer\ProfileController;
 use App\Http\Controllers\Api\V1\Customer\StoreReviewController;
 use Illuminate\Support\Facades\Route;
@@ -47,3 +48,6 @@ Route::controller(StoreReviewController::class)->group(function () {
     Route::post('orders/{orderId}/review', 'store');
     Route::patch('reviews/{review}', 'update');
 });
+
+# ----- Preference Routes
+Route::get('preferences', PreferencesController::class);

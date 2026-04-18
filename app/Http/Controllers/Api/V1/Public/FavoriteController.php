@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Public;
 
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Public\Favorite\ToggleFavoriteRequest;
+use App\Jobs\CustomerPreference\RefreshCustomerPreferences;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -12,8 +13,8 @@ class FavoriteController extends BaseApiController
     /**
      * Toggle product in user's favorites (wishlist).
      *
-     * - If the product already exists in favorites → it will be removed
-     * - If it does not exist → it will be added
+     * - If the product already exists in favorites then it will be removed
+     * - If it does not exist then it will be added
      */
     public function toggle(ToggleFavoriteRequest $request)
     {
@@ -21,10 +22,12 @@ class FavoriteController extends BaseApiController
         $productId = $request->validated()['product_id'];
 
         if ($this->removeFromFavorites($user->id, $productId)) {
+            RefreshCustomerPreferences::throttledDispatch($user->id, 'favorite');
             return $this->apiResponseDeleted($productId);
         }
 
         $this->addToFavorites($user->id, $productId);
+        RefreshCustomerPreferences::throttledDispatch($user->id, 'favorite');
         return $this->apiResponseStored($productId);
     }
 

@@ -6,6 +6,7 @@ use App\Enums\DefineStatus;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
+use App\Jobs\CustomerPreference\RefreshCustomerPreferences;
 use App\Models\Coupon;
 use App\Models\CustomerProfile;
 use App\Models\Order;
@@ -194,6 +195,8 @@ class PlaceOrderService
      * - Inserting order items in bulk
      * - Decrementing product stock quantities
      * - Updating coupon usage count (if applicable)
+     * - Dispatch the customer preferences job to trigger the preferences logic
+     * - Notify the related vendor of the newly created order
      *
      * All operations are part of a single transaction managed by the caller.
      *
@@ -211,6 +214,8 @@ class PlaceOrderService
         $order = Order::create(
             $this->buildOrderAttributes($data, $branch, $address, $coupon, $pricing)
         );
+
+        RefreshCustomerPreferences::throttledDispatch($order->customer_id, 'order');
 
         $order->setRelation('storeBranch', $branch);
         $order->setRelation('store', $branch->store);

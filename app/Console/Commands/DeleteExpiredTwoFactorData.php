@@ -12,7 +12,7 @@ class DeleteExpiredTwoFactorData extends Command
      *
      * @var string
      */
-    protected $signature   = 'two-factor:delete-expired {--chunk=1000}';
+    protected $signature = 'two-factor:delete-expired {--chunk=1000}';
 
     /**
      * The console command description.
