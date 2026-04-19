@@ -148,4 +148,12 @@ class Order extends BaseModel
     {
         return $this->hasOne(Review::class);
     }
+
+    /**
+     * Get payout records associated with this order.
+     */
+    public function vendorPayout(): HasMany
+    {
+        return $this->hasMany(VendorPayout::class);
+    }
 }

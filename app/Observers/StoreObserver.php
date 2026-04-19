@@ -12,7 +12,7 @@ class StoreObserver
      */
     public function created(Store $store): void
     {
-        //
+        $this->clearVendorCache($store->vendor_profile_id);
     }
 
     /**
@@ -20,7 +20,7 @@ class StoreObserver
      */
     public function updating(Store $store): void
     {
-        $this->clearCache($store);
+        $this->clearStoreCache($store);
     }
 
     /**
@@ -28,7 +28,7 @@ class StoreObserver
      */
     public function updated(Store $store): void
     {
-        //
+        $this->clearVendorCache($store->vendor_profile_id);
     }
 
     /**
@@ -36,28 +36,34 @@ class StoreObserver
      */
     public function deleted(Store $store): void
     {
-        $this->clearCache($store);
+        $this->clearStoreCache($store);
+        $this->clearVendorCache($store->vendor_profile_id);
     }
 
     /**
-     * Handle the Store "restored" event.
+     * Clear all cache entries related to a specific store.
+     *
+     * This includes Store-specific cache (lookup by ID and slug)
+     * Triggered when the store is updated or deleted.
      */
-    public function restored(Store $store): void
-    {
-        //
-    }
-
-    /**
-     * Handle the Store "force deleted" event.
-     */
-    public function forceDeleted(Store $store): void
-    {
-        //
-    }
-
-    private function clearCache(Store $store): void
+    private function clearStoreCache(Store $store): void
     {
         Cache::forget("store:slug:{$store->getOriginal('slug')}");
         Cache::forget("store:id:{$store->id}");
+    }
+
+    /**
+     * Clear all the cached data related to a vendor's stores.
+     *
+     * This includes:
+     * - Cached list of store IDs for the vendor
+     * - Aggregated store overview used in the dashboard
+     *
+     * Cleared whenever a store is added, removed, or updated
+     */
+    private function clearVendorCache(string $vendorProfileId): void
+    {
+        Cache::forget("vendor_store_ids:{$vendorProfileId}");
+        Cache::forget("vendor_stores_overview:{$vendorProfileId}");
     }
 }

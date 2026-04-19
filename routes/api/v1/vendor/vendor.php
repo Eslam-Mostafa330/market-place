@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Vendor\BusinessCategoryController;
 use App\Http\Controllers\Api\V1\Vendor\BusinessProfileController;
 use App\Http\Controllers\Api\V1\Vendor\CouponController;
+use App\Http\Controllers\Api\V1\Vendor\DashboardController;
 use App\Http\Controllers\Api\V1\Vendor\NotificationController;
 use App\Http\Controllers\Api\V1\Vendor\OrderController;
 use App\Http\Controllers\Api\V1\Vendor\PayoutController;
@@ -72,4 +73,7 @@ Route::middleware('vendor.verified')->group(function () {
         Route::get('/', 'index');
         Route::get('/{payout}', 'show');
     });
+
+    # ----- Dashboard Routes
+    Route::get('dashboard', DashboardController::class);
 });
