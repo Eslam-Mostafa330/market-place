@@ -11,12 +11,20 @@ use Essa\APIToolKit\Filters\Filterable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class Order extends BaseModel
 {
-    use Filterable;
+    use Filterable, LogsActivity;
     
     protected string $default_filters = OrderFilters::class;
+
+    /**
+     * The events that should trigger activity logging.
+      * We log only 'updated' events to track changes in order status, payment status, and rider assignment
+     */
+    protected static $recordEvents = ['updated'];
 
     /**
      * The attributes that are mass assignable.
@@ -155,5 +163,22 @@ class Order extends BaseModel
     public function vendorPayout(): HasMany
     {
         return $this->hasMany(VendorPayout::class);
+    }
+
+    /**** ***************** ****/
+    /**** ActivityLog Usage ****/
+    /**** ***************** ****/
+    /**
+     * Define activity log behavior for Order model.
+     *
+     * Logs changes only for specific attributes and only when they are modified,
+     * avoiding empty log entries.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['order_status', 'payment_status'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
     }
 }

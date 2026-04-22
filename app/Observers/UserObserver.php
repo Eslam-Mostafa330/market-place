@@ -6,6 +6,7 @@ use App\Enums\DefineStatus;
 use App\Enums\UserRole;
 use App\Models\User;
 use App\Services\EmailVerificationService;
+use Illuminate\Support\Facades\Cache;
 
 class UserObserver
 {
@@ -32,6 +33,8 @@ class UserObserver
         if (in_array($user->role, [UserRole::VENDOR, UserRole::CUSTOMER, UserRole::RIDER])) {
             $this->emailVerificationService->sendVerificationEmail($user, request()->ip());
         }
+
+        $this->clearUserCountCache();
     }
 
     /**
@@ -61,6 +64,14 @@ class UserObserver
         if ($user->wasChanged('email')) {
             $this->handleEmailChange($user);
         }
+    }
+
+    /**
+     * Handle the User "deleted" event.
+     */
+    public function deleted(User $user): void
+    {
+        $this->clearUserCountCache();
     }
 
     /**
@@ -101,5 +112,15 @@ class UserObserver
     private function setDefaultUserStatus(User $user): void
     {
         $user->status = DefineStatus::ACTIVE;
+    }
+
+    /**
+     * Clear cached system-wide counts used in the admin dashboard.
+     *
+     * This is triggered when a user is created or deleted.
+     */
+    private function clearUserCountCache(): void
+    {
+        Cache::forget('admin_system_counts');
     }
 }

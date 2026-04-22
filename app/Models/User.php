@@ -18,11 +18,13 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOneThrough;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class User extends BaseAuthenticatableModel
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens, Filterable;
+    use HasFactory, Notifiable, HasApiTokens, Filterable, LogsActivity;
 
     protected string $default_filters = UserFilters::class;
 
@@ -228,5 +230,32 @@ class User extends BaseAuthenticatableModel
     {
         return $this->isRider()
             && $this->riderProfile?->rider_availability === RiderAvailability::AVAILABLE;
+    }
+
+    /**** ***************** ****/
+    /**** ActivityLog Usage ****/
+    /**** ***************** ****/
+    /**
+     * Define activity log behavior for User model.
+     *
+     * Logs changes only for specific attributes and only when they are modified,
+     * avoiding empty log entries.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['name', 'email', 'role'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
+
+    /**
+     * Determine if the given event should be logged.
+     *
+     * Only log events for users who are not customers, as customers typically have less critical changes.
+     */
+    public function shouldLogEvent(string $eventName): bool
+    {
+        return $this->role !== UserRole::CUSTOMER;
     }
 }

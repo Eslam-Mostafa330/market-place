@@ -28,6 +28,10 @@ class VendorDashboardService
      * the cached list to ensure it belongs to the vendor.
      *
      * Returns either all store IDs or a single valid store ID.
+     *
+     * @param string $vendorProfileId
+     * @param string|null $storeId
+     * @return array
      */
     public function resolveStoreIds(string $vendorProfileId, ?string $storeId): array
     {
@@ -50,6 +54,9 @@ class VendorDashboardService
      * This returns basic store metrics used in the dashboard and is
      * cached per vendor. The data always includes all vendor stores,
      * regardless of any store-level filtering applied elsewhere.
+     *
+     * @param string $vendorProfileId
+     * @return Collection
      */
     public function getStoresOverview(string $vendorProfileId): Collection
     {
@@ -66,8 +73,13 @@ class VendorDashboardService
      * This always queries fresh data to ensure financial accuracy.
      * It includes totals, breakdowns by status and payment method, and
      * derived metrics such as average order value and pending payouts.
+     *
+     * @param array $storeIds
+     * @param int $year
+     * @param int $month
+     * @return object
      */
-    public function getPeriodStats(array $storeIds, int $year, int $month): object
+    public function getPeriodStatistics(array $storeIds, int $year, int $month): object
     {
         $delivered = OrderStatus::DELIVERED->value;
         $cancelled = OrderStatus::CANCELLED->value;
@@ -102,6 +114,9 @@ class VendorDashboardService
      * This sums vendor earnings for orders that are marked as delivered
      * but still have pending payout status, providing insight into
      * outstanding balances owed to the vendor.
+     *
+     * @param array $storeIds
+     * @return float
      */
     private function getPendingPayoutAmount(array $storeIds): float
     {
@@ -119,6 +134,10 @@ class VendorDashboardService
      * Aggregates total earnings and order counts per month, ensuring
      * all months are represented even if no data exists for some.
      * Useful for charts and trend analysis in the dashboard.
+     *
+     * @param array $storeIds
+     * @param int $year
+     * @return Collection
      */
     public function getMonthlyEarnings(array $storeIds, int $year): Collection
     {
@@ -143,6 +162,11 @@ class VendorDashboardService
      * Products are ranked by total quantity sold, along with their
      * generated revenue. This helps highlight best-selling items
      * for the vendor within the selected timeframe.
+     *
+     * @param array $storeIds
+     * @param int $year
+     * @param int $month
+     * @return Collection
      */
     public function getTopProducts(array $storeIds, int $year, int $month): Collection
     {
@@ -170,8 +194,11 @@ class VendorDashboardService
      * Reviews are cached per store to allow independent invalidation.
      * The results are merged into a single collection for display
      * in the dashboard, ensuring both performance and data freshness.
+     *
+     * @param array $storeIds
+     * @return Collection
      */
-    public function getLatestReviews(array $storeIds): Collection
+    public function getRecentReviews(array $storeIds): Collection
     {
         return collect($storeIds)->flatMap(function ($storeId) {
             return Cache::remember("store_reviews:{$storeId}", now()->addDays(15),

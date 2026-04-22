@@ -43,11 +43,11 @@ class DashboardController extends BaseApiController
         abort_if($storeId && empty($storeIds), 404);
 
         return $this->apiResponseShow([
-            'period_stats'     => new PeriodStatsResource($this->vendorDashboardService->getPeriodStats($storeIds, $year, $month)),
+            'period_stats'     => new PeriodStatsResource($this->vendorDashboardService->getPeriodStatistics($storeIds, $year, $month)),
             'stores'           => StoreOverviewResource::collection($this->vendorDashboardService->getStoresOverview($vendorProfileId)),
             'monthly_earnings' => MonthlyEarningResource::collection($this->vendorDashboardService->getMonthlyEarnings($storeIds, $year)),
             'top_products'     => TopProductResource::collection($this->vendorDashboardService->getTopProducts($storeIds, $year, $month)),
-            'latest_reviews'   => LatestReviewResource::collection($this->vendorDashboardService->getLatestReviews($storeIds)),
+            'latest_reviews'   => LatestReviewResource::collection($this->vendorDashboardService->getRecentReviews($storeIds)),
         ]);
     }
 }

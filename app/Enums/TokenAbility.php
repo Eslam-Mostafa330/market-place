@@ -12,9 +12,6 @@ enum TokenAbility: int
      */
     public static function values(): array
     {
-        return [
-            self::ACCESS_API->value,
-            self::ISSUE_ACCESS_TOKEN->value,
-        ];
+        return array_column(self::cases(), 'value');
     }
 }

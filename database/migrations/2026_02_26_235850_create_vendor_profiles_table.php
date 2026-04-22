@@ -20,8 +20,6 @@ return new class extends Migration
             $table->text('business_description')->nullable();
             $table->string('business_phone', 25)->nullable();
             $table->string('business_email')->nullable();
-            $table->decimal('rating', 3, 2)->default(0)->nullable();
-            $table->unsignedMediumInteger('total_orders')->default(0);
             $table->unsignedTinyInteger('verification_status')->default(VendorVerificationStatus::default());
             $table->timestamps();
         });

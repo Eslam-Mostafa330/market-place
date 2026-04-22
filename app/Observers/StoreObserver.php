@@ -13,6 +13,7 @@ class StoreObserver
     public function created(Store $store): void
     {
         $this->clearVendorCache($store->vendor_profile_id);
+        $this->clearStoreCountCache();
     }
 
     /**
@@ -38,6 +39,7 @@ class StoreObserver
     {
         $this->clearStoreCache($store);
         $this->clearVendorCache($store->vendor_profile_id);
+        $this->clearStoreCountCache();
     }
 
     /**
@@ -65,5 +67,15 @@ class StoreObserver
     {
         Cache::forget("vendor_store_ids:{$vendorProfileId}");
         Cache::forget("vendor_stores_overview:{$vendorProfileId}");
+    }
+
+    /**
+     * Clear cached system-wide counts used in the admin dashboard.
+     *
+     * This is triggered when a store is created or deleted.
+     */
+    private function clearStoreCountCache(): void
+    {
+        Cache::forget('admin_system_counts');
     }
 }

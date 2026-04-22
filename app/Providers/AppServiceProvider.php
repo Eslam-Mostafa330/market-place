@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\BusinessCategory;
+use App\Models\Coupon;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\Sanctum;
 use App\Models\PersonalAccessToken;
@@ -11,6 +12,7 @@ use App\Models\Store;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Observers\BusinessCategoryObserver;
+use App\Observers\CouponObserver;
 use App\Observers\ReviewObserver;
 use App\Observers\StoreObserver;
 use App\Observers\UserAddressObserver;
@@ -42,5 +44,6 @@ class AppServiceProvider extends ServiceProvider
         BusinessCategory::observe(BusinessCategoryObserver::class);
         Store::observe(StoreObserver::class);
         Review::observe(ReviewObserver::class);
+        Coupon::observe(CouponObserver::class);
     }
 }

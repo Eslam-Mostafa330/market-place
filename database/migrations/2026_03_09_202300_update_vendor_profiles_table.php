@@ -12,7 +12,6 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('vendor_profiles', function (Blueprint $table) {
-            $table->decimal('rating', 3, 2)->default(0)->nullable(false)->change();
             $table->unique('user_id');
             $table->text('rejection_reason')->nullable()->after('verification_status');
         });
@@ -24,7 +23,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('vendor_profiles', function (Blueprint $table) {
-            $table->decimal('rating', 3, 2)->default(0)->nullable()->change();
             $table->dropUnique(['user_id']);
             $table->dropColumn('rejection_reason');
         });

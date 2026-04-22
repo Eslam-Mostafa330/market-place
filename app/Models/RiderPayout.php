@@ -8,10 +8,13 @@ use App\Filters\PayoutFilters;
 use Essa\APIToolKit\Filters\Filterable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Models\Activity;
 
 class RiderPayout extends BaseModel
 {
-    use Filterable;
+    use Filterable, LogsActivity;
 
     protected string $default_filters = PayoutFilters::class;
 
@@ -95,5 +98,34 @@ class RiderPayout extends BaseModel
         return Attribute::get(
             fn () => $this->payout_proof ? asset('storage/' . $this->payout_proof) : null
         );
+    }
+
+    /**** ***************** ****/
+    /**** ActivityLog Usage ****/
+    /**** ***************** ****/
+    /**
+     * Define activity log behavior for RiderPayout model.
+     *
+     * Logs changes only for specific attributes and only when they are modified,
+     * avoiding empty log entries.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['rider_id', 'status', 'paid_at'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
+
+    /**
+     * Customize the activity log entry before it's saved.
+     *
+     * This method allows to add custom properties to the activity log entry, such as the rider_id.
+     */
+    public function tapActivity(Activity $activity)
+    {
+        $activity->properties = $activity->properties->merge([
+            'rider_id' => $this->rider_id,
+        ]);
     }
 }

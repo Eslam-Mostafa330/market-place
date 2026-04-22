@@ -8,10 +8,13 @@ use App\Filters\VendorPayoutFilters;
 use Essa\APIToolKit\Filters\Filterable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Models\Activity;
 
 class VendorPayout extends BaseModel
 {
-    use Filterable;
+    use Filterable, LogsActivity;
     
     protected string $default_filters = VendorPayoutFilters::class;
 
@@ -49,7 +52,7 @@ class VendorPayout extends BaseModel
         ];
     }
 
-        /**** ************* ****/
+    /**** ************* ****/
     /**** Relationships ****/
     /**** ************* ****/
     /** 
@@ -95,5 +98,34 @@ class VendorPayout extends BaseModel
         return Attribute::get(
             fn () => $this->payout_proof ? asset('storage/' . $this->payout_proof) : null
         );
+    }
+
+    /**** ***************** ****/
+    /**** ActivityLog Usage ****/
+    /**** ***************** ****/
+    /**
+     * Define activity log behavior for VendorPayout model.
+     *
+     * Logs changes only for specific attributes and only when they are modified,
+     * avoiding empty log entries.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['vendor_id', 'status', 'paid_at'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
+
+    /**
+     * Customize the activity log entry before it's saved.
+     *
+     * This method allows to add custom properties to the activity log entry, such as the vendor_id.
+     */
+    public function tapActivity(Activity $activity)
+    {
+        $activity->properties = $activity->properties->merge([
+            'vendor_id' => $this->vendor_id,
+        ]);
     }
 }

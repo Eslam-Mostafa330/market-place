@@ -41,5 +41,6 @@ class ReviewObserver
     private function clearStoreReviewCache(string $storeId): void
     {
         Cache::forget("store_reviews:{$storeId}");
+        Cache::forget('admin_latest_reviews');
     }
 }

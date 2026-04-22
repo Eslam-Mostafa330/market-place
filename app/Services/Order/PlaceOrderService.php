@@ -36,14 +36,14 @@ class PlaceOrderService
      * - Initiating payment when required (e.g. VISA)
      * - Returning both the order and payment details (if applicable)
      * - Handle the wallet discount if exists.
+     * - Dispatch the customer preferences job to trigger the preferences logic
+     * - Notify the related vendor of the newly created order
      *
      * @param array $data Validated request data
-     *
-     * @return array{order: Order, payment: array|null}
      */
     public function handle(array $data): array
     {
-        return DB::transaction(function () use ($data) {
+        ['order' => $order, 'vendorUser' => $vendorUser] = DB::transaction(function () use ($data) {
             ['branch' => $branch, 'address' => $address, 'coupon' => $coupon] = $this->validateOrder($data);
 
             $items = $this->resolveItems($data['items'], $branch);
@@ -52,14 +52,20 @@ class PlaceOrderService
 
             $pricing = $this->calculator->calculate($items, $branch, (float) $branch->store->commission_rate, $coupon, $walletDiscount);
 
-            $order = $this->persistOrder($data, $branch, $address, $coupon, $items, $pricing);
+            ['order' => $order, 'vendorUser' => $vendorUser] = $this->persistOrder($data, $branch, $address, $coupon, $items, $pricing);
 
             if ($walletProfile && $pricing['wallet_discount'] > 0) {
                 $this->loyaltyService->deductWalletBalance($walletProfile, $pricing['wallet_discount']);
             }
 
-            return ['order' => $order, 'payment' => $this->handlePayment($order)];
+            return ['order' => $order, 'vendorUser' => $vendorUser];
         });
+
+        RefreshCustomerPreferences::throttledDispatch($order->customer_id, 'order');
+
+        $vendorUser?->notify(new NewOrderNotification(orderId: $order->id, orderNumber: $order->order_number, total: $order->total, itemsCount: $order->items->count(), branchName: $order->storeBranch->name, storeName: $order->store->name));
+
+        return ['order' => $order, 'payment' => $this->handlePayment($order)];
     }
 
     /**
@@ -70,13 +76,16 @@ class PlaceOrderService
      */
     private function validateOrder(array $data): array
     {
-        $branch = StoreBranch::with('store')->findOrFail($data['store_branch_id']);
+        $branch = StoreBranch::select('id', 'store_id', 'name', 'delivery_fee', 'status')
+            ->with(['store:id,name,commission_rate,vendor_profile_id'])
+            ->findOrFail($data['store_branch_id']);
 
         if ($branch->status !== DefineStatus::ACTIVE) {
             throw new UnprocessableEntityHttpException(__('orders.branch_unavailable'));
         }
 
-        $address = UserAddress::findOrFail($data['address_id']);
+        $address = UserAddress::select('id', 'user_id', 'address_line_1', 'city', 'state', 'country', 'postal_code', 'additional_info', 'contact_phone', 'latitude', 'longitude')
+            ->findOrFail($data['address_id']);
 
         if ($address->user_id !== auth()->id()) {
             throw new UnprocessableEntityHttpException(__('orders.address_not_owned'));
@@ -98,7 +107,10 @@ class PlaceOrderService
      */
     private function validateCoupon(string $code, StoreBranch $branch): Coupon
     {
-        $coupon = Coupon::where('code', $code)->lockForUpdate()->firstOrFail();
+        $coupon = Coupon::select('id', 'store_id', 'status', 'starts_at', 'expires_at', 'usage_limit_per_user', 'coupon_type', 'value')
+            ->where('code', $code)
+            ->lockForUpdate()
+            ->firstOrFail();
 
         if ($coupon->status !== DefineStatus::ACTIVE) {
             throw new UnprocessableEntityHttpException(__('orders.coupon_inactive'));
@@ -144,7 +156,11 @@ class PlaceOrderService
      */
     private function resolveItems(array $rawItems, StoreBranch $branch): array
     {
-        $products = Product::whereIn('id', array_column($rawItems, 'product_id'))->lockForUpdate()->get()->keyBy('id');
+        $products = Product::select('id', 'name', 'store_id', 'status', 'quantity', 'price', 'sale_price')
+            ->whereIn('id', array_column($rawItems, 'product_id'))
+            ->lockForUpdate()
+            ->get()
+            ->keyBy('id');
 
         return array_map(function ($raw) use ($products, $branch) {
             $product = $products->get($raw['product_id']) ?? throw new UnprocessableEntityHttpException('One or more products were not found.');
@@ -195,8 +211,6 @@ class PlaceOrderService
      * - Inserting order items in bulk
      * - Decrementing product stock quantities
      * - Updating coupon usage count (if applicable)
-     * - Dispatch the customer preferences job to trigger the preferences logic
-     * - Notify the related vendor of the newly created order
      *
      * All operations are part of a single transaction managed by the caller.
      *
@@ -206,16 +220,14 @@ class PlaceOrderService
      * @param Coupon|null  $coupon   Applied coupon (if any)
      * @param array        $items    Resolved order items
      * @param array        $pricing  Calculated pricing breakdown
-     *
-     * @return Order The persisted order instance with items relation set
+     * 
+     * @return array{order: Order, vendorUser: User|null}
      */
-    private function persistOrder(array $data, StoreBranch $branch, UserAddress $address, ?Coupon $coupon, array $items, array $pricing): Order
+    private function persistOrder(array $data, StoreBranch $branch, UserAddress $address, ?Coupon $coupon, array $items, array $pricing): array
     {
         $order = Order::create(
             $this->buildOrderAttributes($data, $branch, $address, $coupon, $pricing)
         );
-
-        RefreshCustomerPreferences::throttledDispatch($order->customer_id, 'order');
 
         $order->setRelation('storeBranch', $branch);
         $order->setRelation('store', $branch->store);
@@ -227,22 +239,20 @@ class PlaceOrderService
         $this->decrementStock($items);
 
         if ($coupon) {
-            $coupon->increment('used_count');
+            Coupon::whereKey($coupon->id)->update(['used_count' => DB::raw('used_count + 1')]);
         }
-
-        $vendorUser = User::join('vendor_profiles', 'vendor_profiles.user_id', '=', 'users.id')
-            ->where('vendor_profiles.id', $branch->store->vendor_profile_id)
-            ->select('users.id')
-            ->first();
-
-        $vendorUser?->notify(new NewOrderNotification(orderId: $order->id, orderNumber: $order->order_number, total: $order->total, itemsCount: count($items), branchName: $branch->name, storeName: $branch->store->name));
 
         $order->setRelation(
             'items',
             collect($itemRows)->map(fn ($row) => (new OrderItem())->forceFill($row))
         );
 
-        return $order;
+        $vendorUser = User::select('users.id')
+            ->join('vendor_profiles', 'vendor_profiles.user_id', '=', 'users.id')
+            ->where('vendor_profiles.id', $branch->store->vendor_profile_id)
+            ->first();
+
+        return ['order' => $order, 'vendorUser' => $vendorUser];
     }
 
     /**
@@ -292,7 +302,7 @@ class PlaceOrderService
             'delivery_country'      => $address->country,
             'delivery_postal_code'  => $address->postal_code,
             'delivery_notes'        => $address->additional_info,
-            'delivery_phone'        => $address->phone ?? auth()->user()->phone,
+            'delivery_phone'        => $address->contact_phone ?? auth()->user()->phone,
             'delivery_latitude'     => $address->latitude,
             'delivery_longitude'    => $address->longitude,
         ];
@@ -375,7 +385,8 @@ class PlaceOrderService
             return ['discount' => 0.0, 'profile' => null];
         }
 
-        $profile = CustomerProfile::where('user_id', auth()->id())
+        $profile = CustomerProfile::select('id', 'user_id', 'wallet_balance')
+            ->where('user_id', auth()->id())
             ->lockForUpdate()
             ->first();
 

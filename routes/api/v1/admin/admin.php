@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Admin\AdminController;
 use App\Http\Controllers\Api\V1\Admin\AvailableRiderOrderController;
 use App\Http\Controllers\Api\V1\Admin\BusinessCategoryController;
 use App\Http\Controllers\Api\V1\Admin\CustomerController;
+use App\Http\Controllers\Api\V1\Admin\DashboardController;
 use App\Http\Controllers\Api\V1\Admin\NotificationController;
 use App\Http\Controllers\Api\V1\Admin\OrderController;
 use App\Http\Controllers\Api\V1\Admin\ProfileController;
@@ -111,3 +112,6 @@ Route::controller(SettingController::class)->prefix('settings')->group(function 
     Route::get('/social', 'showSocial');
     Route::patch('/social', 'updateSocial');
 });
+
+# ----- Dashboard Routes
+Route::get('dashboard', DashboardController::class);

@@ -11,10 +11,12 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Activitylog\LogOptions;
 
 class Store extends BaseModel
 {
-    use HasSlug, Filterable, HasFactory;
+    use HasSlug, Filterable, HasFactory, LogsActivity;
 
     protected string $default_filters = StoreFilters::class;
 
@@ -153,5 +155,22 @@ class Store extends BaseModel
         return Attribute::get(
             fn () => $this->logo ? asset('storage/' . $this->logo) : null
         );
+    }
+
+    /**** ***************** ****/
+    /**** ActivityLog Usage ****/
+    /**** ***************** ****/
+    /**
+     * Define activity log behavior for Store model.
+     *
+     * Logs changes only for specific attributes and only when they are modified,
+     * avoiding empty log entries.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['name'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
     }
 }
