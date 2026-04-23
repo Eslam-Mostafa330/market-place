@@ -15,12 +15,13 @@ class LatestReviewResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'            => $this->id,
-            'rate'          => $this->rate,
-            'full_review'   => $this->full_review,
-            'reviewed_at'   => $this->created_at,
-            'customer_name' => $this->customer?->name,
-            'store'         => new ReviewStoreResource($this->whenLoaded('store')),
+            'id'          => $this->id,
+            'rate'        => $this->rate,
+            'full_review' => $this->full_review,
+            'reviewed_at' => $this->reviewed_at,
+            'store_id'    => $this->store_id,
+            'store_name'  => $this->store_name,
+            'customer'    => $this->customer,
         ];
     }
 }

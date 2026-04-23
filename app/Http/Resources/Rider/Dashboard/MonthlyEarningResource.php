@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Resources\Vendor\Dashboard;
+namespace App\Http\Resources\Rider\Dashboard;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class ReviewStoreResource extends JsonResource
+class MonthlyEarningResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -15,8 +15,9 @@ class ReviewStoreResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'   => $this->id,
-            'name' => $this->name,
+            'month'        => $this->month,
+            'earned'       => (float) $this->earned,
+            'orders_count' => (int) $this->orders_count,
         ];
     }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Rider\DashboardController;
 use App\Http\Controllers\Api\V1\Rider\NotificationController;
 use App\Http\Controllers\Api\V1\Rider\OrderController;
 use App\Http\Controllers\Api\V1\Rider\PayoutController;
@@ -42,3 +43,6 @@ Route::controller(PayoutController::class)->prefix('payouts')->group(function ()
     Route::get('/', 'index');
     Route::get('/{payout}', 'show');
 });
+
+# ----- Dashboard Routes
+Route::get('dashboard', DashboardController::class);

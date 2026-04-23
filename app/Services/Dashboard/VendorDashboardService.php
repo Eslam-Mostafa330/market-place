@@ -6,7 +6,6 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PayoutStatus;
 use App\Models\Order;
-use App\Models\Review;
 use App\Models\Store;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -190,25 +189,29 @@ class VendorDashboardService
 
     /**
      * Retrieve the latest reviews for the given stores.
-     *
-     * Reviews are cached per store to allow independent invalidation.
-     * The results are merged into a single collection for display
-     * in the dashboard, ensuring both performance and data freshness.
+     * This fetches recent customer feedback, including ratings and comments,
+     * along with reviewer and store information.
      *
      * @param array $storeIds
      * @return Collection
      */
     public function getRecentReviews(array $storeIds): Collection
     {
-        return collect($storeIds)->flatMap(function ($storeId) {
-            return Cache::remember("store_reviews:{$storeId}", now()->addDays(15),
-                fn () => Review::where('store_id', $storeId)
-                    ->select('id', 'store_id', 'customer_id', 'rate', 'full_review', 'created_at')
-                    ->with(['customer:id,name', 'store:id,name'])
-                    ->latest()
-                    ->limit(10)
-                    ->get()
-            );
-        });
+        return DB::table('reviews')
+            ->join('users AS customers', 'reviews.customer_id', '=', 'customers.id')
+            ->join('stores','reviews.store_id', '=', 'stores.id')
+            ->whereIn('reviews.store_id', $storeIds)
+            ->select(
+                'reviews.id',
+                'reviews.rate',
+                'reviews.full_review',
+                'reviews.created_at AS reviewed_at',
+                'customers.name AS customer',
+                'stores.name AS store_name',
+                'stores.id AS store_id',
+            )
+            ->latest('reviews.created_at')
+            ->limit(6)
+            ->get();
     }
 }

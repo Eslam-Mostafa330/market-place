@@ -252,7 +252,7 @@ class AdminDashboardService
         return Activity::select('id', 'subject_type', 'subject_id', 'causer_type', 'causer_id', 'properties', 'event', 'created_at')
             ->with('causer:id,name')
             ->latest()
-            ->limit(10)
+            ->limit(6)
             ->get();
     }
 }

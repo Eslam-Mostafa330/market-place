@@ -12,7 +12,7 @@ class ReviewObserver
      */
     public function created(Review $review): void
     {
-        $this->clearStoreReviewCache($review->store_id);
+        $this->clearStoreReviewCache();
     }
 
     /**
@@ -20,7 +20,7 @@ class ReviewObserver
      */
     public function updated(Review $review): void
     {
-        $this->clearStoreReviewCache($review->store_id);
+        $this->clearStoreReviewCache();
     }
 
     /**
@@ -28,7 +28,7 @@ class ReviewObserver
      */
     public function deleted(Review $review): void
     {
-        $this->clearStoreReviewCache($review->store_id);
+        $this->clearStoreReviewCache();
     }
 
     /**
@@ -38,9 +38,8 @@ class ReviewObserver
      * in the vendor dashboard. It's invalidated whenever a review
      * is created, updated, or deleted.
      */
-    private function clearStoreReviewCache(string $storeId): void
+    private function clearStoreReviewCache(): void
     {
-        Cache::forget("store_reviews:{$storeId}");
         Cache::forget('admin_latest_reviews');
     }
 }

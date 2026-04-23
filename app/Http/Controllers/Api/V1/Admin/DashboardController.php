@@ -19,13 +19,10 @@ class DashboardController extends BaseApiController
     /**
      * Handle the admin dashboard request.
      *
-     * This endpoint aggregates all data required for the admin dashboard,
-     * including period statistics, monthly earnings, top products,
-     * top stores, latest reviews, and recent activity logs.
+     * Aggregates dashboard data including period statistics, monthly earnings,
+     * top products, top stores, latest reviews, and activity logs.
      *
-     * Date filtering is applied based on the provided year and month:
-     * - If no filters are provided, the current year and month are used by default.
-     * - If both year and month are provided, all metrics are scoped to that period.
+     * Supports optional year and month filters (defaults to current period).
      */
     public function __invoke(ValidateFiltersRequest $request)
     {
