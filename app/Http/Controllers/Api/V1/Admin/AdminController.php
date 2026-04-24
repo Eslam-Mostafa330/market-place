@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
-use App\Enums\DefineStatus;
 use App\Enums\UserRole;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Controllers\Api\V1\Admin\Concerns\AdminAuthorization;
@@ -11,12 +10,15 @@ use App\Http\Requests\Admin\AdminUser\UpdateAdminRequest;
 use App\Http\Resources\Admin\AdminUser\AdminUserResource;
 use App\Http\Resources\Admin\AdminUser\ToggleAdminStatusResource;
 use App\Models\User;
+use App\Services\UserStatusService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class AdminController extends BaseApiController
 {
     use AdminAuthorization;
+
+    public function __construct(private readonly UserStatusService $userStatusService) {}
 
     public function index(): AnonymousResourceCollection
     {
@@ -53,17 +55,12 @@ class AdminController extends BaseApiController
     }
 
     /**
-     * Toggle the status of an admin
+     * Toggle the status of an admin.
      */
     public function toggleStatus(User $admin): JsonResponse
     {
         $this->authorizeAdminAction($admin);
-
-        $newStatus = $admin->status === DefineStatus::ACTIVE
-            ? DefineStatus::INACTIVE
-            : DefineStatus::ACTIVE;
-
-        $admin->update(['status' => $newStatus]);
+        $this->userStatusService->toggle($admin);
         return $this->apiResponseUpdated(new ToggleAdminStatusResource($admin));
     }
 }

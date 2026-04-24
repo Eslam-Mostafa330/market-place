@@ -9,6 +9,7 @@ use App\Http\Resources\Rider\Dashboard\LatestPayoutResource;
 use App\Http\Resources\Rider\Dashboard\MonthlyEarningResource;
 use App\Http\Resources\Rider\Dashboard\PeriodStatsResource;
 use App\Services\Dashboard\RiderDashboardService;
+use Illuminate\Http\JsonResponse;
 
 class DashboardController extends BaseApiController
 {
@@ -23,7 +24,7 @@ class DashboardController extends BaseApiController
      *
      * Optional filters (year, month) default to the current date.
      */
-    public function __invoke(ValidateFiltersRequest $request)
+    public function __invoke(ValidateFiltersRequest $request): JsonResponse
     {
         $riderId = auth()->id();
         $year    = $request->integer('year',  now()->year);

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\ActivityController;
 use App\Http\Controllers\Api\V1\Admin\AdminController;
 use App\Http\Controllers\Api\V1\Admin\AvailableRiderOrderController;
 use App\Http\Controllers\Api\V1\Admin\BusinessCategoryController;
@@ -115,3 +116,6 @@ Route::controller(SettingController::class)->prefix('settings')->group(function 
 
 # ----- Dashboard Routes
 Route::get('dashboard', DashboardController::class);
+
+# ----- Activity Routes
+Route::get('activity', ActivityController::class);

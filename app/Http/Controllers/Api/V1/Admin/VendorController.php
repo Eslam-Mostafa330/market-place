@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
-use App\Enums\DefineStatus;
 use App\Enums\UserRole;
 use App\Enums\VendorVerificationStatus;
 use App\Http\Controllers\Api\BaseApiController;
@@ -11,11 +10,14 @@ use App\Http\Requests\Admin\VendorUser\UpdateVendorRequest;
 use App\Http\Resources\Admin\VendorUser\ToggleVendorStatusResource;
 use App\Http\Resources\Admin\VendorUser\VendorUserResource;
 use App\Models\User;
+use App\Services\UserStatusService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class VendorController extends BaseApiController
 {
+    public function __construct(private readonly UserStatusService $userStatusService) {}
+
     public function index(): AnonymousResourceCollection
     {
         $vendors = User::select('users.id', 'users.name', 'users.email', 'users.phone', 'users.status', 'vendor_profiles.verification_status')
@@ -53,17 +55,12 @@ class VendorController extends BaseApiController
     }
 
     /**
-     * Toggle the status of a vendor
+     * Toggle the status of a vendor.
      */
     public function toggleStatus(User $vendor): JsonResponse
     {
         abort_unless($vendor->isVendor(), 422, __('validation.custom.verify_vendors'));
-
-        $newStatus = $vendor->status === DefineStatus::ACTIVE
-            ? DefineStatus::INACTIVE
-            : DefineStatus::ACTIVE;
-
-        $vendor->update(['status' => $newStatus]);
+        $this->userStatusService->toggle($vendor);
         return $this->apiResponseUpdated(new ToggleVendorStatusResource($vendor));
     }
 }

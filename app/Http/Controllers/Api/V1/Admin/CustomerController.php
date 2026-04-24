@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
-use App\Enums\DefineStatus;
 use App\Enums\UserRole;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Admin\CustomerUser\CreateCustomerRequest;
@@ -10,12 +9,15 @@ use App\Http\Requests\Admin\CustomerUser\UpdateCustomerRequest;
 use App\Http\Resources\Admin\CustomerUser\CustomerUserResource;
 use App\Http\Resources\Admin\CustomerUser\ToggleCustomerStatusResource;
 use App\Models\User;
+use App\Services\UserStatusService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 
 class CustomerController extends BaseApiController
 {
+    public function __construct(private readonly UserStatusService $userStatusService) {}
+
     public function index(): AnonymousResourceCollection
     {
         $customers = User::select('id', 'name', 'email', 'phone', 'status')
@@ -56,17 +58,12 @@ class CustomerController extends BaseApiController
     }
 
     /**
-     * Toggle the status of a customer
+     * Toggle the status of a customer.
      */
     public function toggleStatus(User $customer): JsonResponse
     {
         abort_unless($customer->isCustomer(), 422, __('validation.custom.verify_customers'));
-
-        $newStatus = $customer->status === DefineStatus::ACTIVE
-            ? DefineStatus::INACTIVE
-            : DefineStatus::ACTIVE;
-
-        $customer->update(['status' => $newStatus]);
+        $this->userStatusService->toggle($customer);
         return $this->apiResponseUpdated(new ToggleCustomerStatusResource($customer));
     }
 }

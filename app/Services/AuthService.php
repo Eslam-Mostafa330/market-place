@@ -128,4 +128,12 @@ class AuthService
 
         return $token->plainTextToken;
     }
+
+    /**
+     * Revoke all tokens for a user (used for admin actions).
+     */
+    public function revokeAllTokens(User $user): void
+    {
+        $user->tokens()->delete();
+    }
 }

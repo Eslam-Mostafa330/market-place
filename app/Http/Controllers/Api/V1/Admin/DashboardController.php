@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Admin\Dashboard\ValidateFiltersRequest;
-use App\Http\Resources\Admin\Dashboard\ActivityLogResource;
+use App\Http\Resources\Admin\Activity\ActivityLogResource;
 use App\Http\Resources\Admin\Dashboard\LatestReviewResource;
 use App\Http\Resources\Admin\Dashboard\MonthlyEarningResource;
 use App\Http\Resources\Admin\Dashboard\PeriodStatsResource;
 use App\Http\Resources\Admin\Dashboard\TopProductResource;
 use App\Http\Resources\Admin\Dashboard\TopStoreResource;
 use App\Services\Dashboard\AdminDashboardService;
+use Illuminate\Http\JsonResponse;
 
 class DashboardController extends BaseApiController
 {
@@ -24,7 +25,7 @@ class DashboardController extends BaseApiController
      *
      * Supports optional year and month filters (defaults to current period).
      */
-    public function __invoke(ValidateFiltersRequest $request)
+    public function __invoke(ValidateFiltersRequest $request): JsonResponse
     {
         $year     = $request->integer('year',  now()->year);
         $month    = $request->integer('month', now()->month);

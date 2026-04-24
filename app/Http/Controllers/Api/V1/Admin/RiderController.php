@@ -2,15 +2,14 @@
 
 namespace App\Http\Controllers\Api\V1\Admin;
 
-use App\Enums\DefineStatus;
 use App\Enums\UserRole;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Admin\RiderUser\CreateRiderRequest;
 use App\Http\Requests\Admin\RiderUser\UpdateRiderRequest;
-use App\Http\Resources\Admin\RiderUser\RiderUserListResource;
 use App\Http\Resources\Admin\RiderUser\RiderUserResource;
 use App\Http\Resources\Admin\RiderUser\ToggleRiderStatusResource;
 use App\Models\User;
+use App\Services\UserStatusService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Arr;
@@ -18,6 +17,8 @@ use Illuminate\Support\Facades\DB;
 
 class RiderController extends BaseApiController
 {
+    public function __construct(private readonly UserStatusService $userStatusService) {}
+
     public function index(): AnonymousResourceCollection
     {
         $riders = User::select('id', 'name', 'email', 'phone', 'status')
@@ -76,17 +77,12 @@ class RiderController extends BaseApiController
     }
 
     /**
-     * Toggle the status of a rider
+     * Toggle the status of a rider.
      */
     public function toggleStatus(User $rider): JsonResponse
     {
         abort_unless($rider->isRider(), 422, __('validation.custom.verify_riders'));
-
-        $newStatus = $rider->status === DefineStatus::ACTIVE
-            ? DefineStatus::INACTIVE
-            : DefineStatus::ACTIVE;
-
-        $rider->update(['status' => $newStatus]);
+        $this->userStatusService->toggle($rider);
         return $this->apiResponseUpdated(new ToggleRiderStatusResource($rider));
     }
 
