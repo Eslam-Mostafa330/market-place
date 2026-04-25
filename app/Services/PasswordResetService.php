@@ -132,7 +132,7 @@ class PasswordResetService
     private function trackResetAttempt(string $email, ?string $ipAddress): void
     {
         $emailKey = $this->getEmailAttemptKey($email);
-        Cache::add($emailKey, 0, now()->addMinutes(self::ATTEMPT_WINDOW_MINUTES)); // only sets if missing
+        Cache::add($emailKey, 0, now()->addMinutes(self::ATTEMPT_WINDOW_MINUTES));
         Cache::increment($emailKey);
 
         if ($ipAddress) {
