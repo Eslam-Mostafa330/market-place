@@ -5,21 +5,56 @@
 
     RewriteEngine On
 
-    # Handle Authorization Header
+    # Block requests with abnormally long query strings
+    RewriteCond %{QUERY_STRING} ^.{500,}$
+    RewriteRule .* - [F,L]
+
+    # Block empty user agents
+    RewriteCond %{HTTP_USER_AGENT} ^$
+    RewriteRule .* - [F,L]
+
+    # Pass Authorization header to PHP
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-    # Handle X-XSRF-Token Header
+    # Pass XSRF token header to PHP
     RewriteCond %{HTTP:x-xsrf-token} .
     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
-    # Redirect Trailing Slashes If Not A Folder...
+    # Redirect trailing slashes
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
-    # Send Requests To Front Controller...
+    # Disable PATH_INFO
+    AcceptPathInfo Off
+
+    # Front controller
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
+</IfModule>
+
+# Block access to sensitive files
+<FilesMatch "\.(env|log|json|lock|md|git|sh|sql|bak|swp|DS_Store)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Explicitly block .env
+<Files ".env">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# Security headers
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "DENY"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header unset X-Powered-By
 </IfModule>

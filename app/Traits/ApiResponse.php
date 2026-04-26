@@ -4,7 +4,7 @@ namespace App\Traits;
 
 trait ApiResponse
 {
-    public static function apiResponse($data, $message = null, $status = 200)
+    public static function apiResponse($data, $message = null, int $status = 200)
     {
         $response = [
             'data'   => !empty($data) ? $data : [],
