@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Controllers\Api\V1\Admin\Concerns\AdminAuthorization;
 use App\Http\Requests\Admin\CustomerUser\CreateCustomerRequest;
 use App\Http\Requests\Admin\CustomerUser\UpdateCustomerRequest;
 use App\Http\Resources\Admin\CustomerUser\CustomerUserResource;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\DB;
 
 class CustomerController extends BaseApiController
 {
+    use AdminAuthorization;
+
     public function __construct(private readonly UserStatusService $userStatusService) {}
 
     public function index(): AnonymousResourceCollection
@@ -44,7 +47,7 @@ class CustomerController extends BaseApiController
 
     public function update(UpdateCustomerRequest $request, User $customer): JsonResponse
     {
-        abort_unless($customer->isCustomer(), 422, __('validation.custom.verify_customers'));
+        $this->authorizeCustomerAction($customer);
         $data = $request->validated();
         $customer->update($data);
         return $this->apiResponseUpdated(new CustomerUserResource($customer));
@@ -52,7 +55,8 @@ class CustomerController extends BaseApiController
 
     public function destroy(User $customer): JsonResponse
     {
-        abort_unless($customer->isCustomer(), 422, __('validation.custom.verify_customers'));
+        abort_if($customer->customerOrders()->exists(), 422, __('customers.cannot_delete_due_orders'));
+        $this->authorizeCustomerAction($customer);
         $customer->delete();
         return $this->apiResponseDeleted();
     }
@@ -62,7 +66,7 @@ class CustomerController extends BaseApiController
      */
     public function toggleStatus(User $customer): JsonResponse
     {
-        abort_unless($customer->isCustomer(), 422, __('validation.custom.verify_customers'));
+        $this->authorizeCustomerAction($customer);
         $this->userStatusService->toggle($customer);
         return $this->apiResponseUpdated(new ToggleCustomerStatusResource($customer));
     }

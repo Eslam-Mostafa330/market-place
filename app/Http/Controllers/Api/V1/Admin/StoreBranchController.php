@@ -30,6 +30,7 @@ class StoreBranchController extends BaseApiController
 
     public function destroy(Store $store, StoreBranch $branch): JsonResponse
     {
+        abort_if($branch->orders()->exists(), 422, __('store-branches.cannot_delete_due_orders'));
         $branch->delete();
         return $this->apiResponseDeleted();
     }

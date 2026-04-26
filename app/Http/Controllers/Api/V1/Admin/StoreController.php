@@ -36,7 +36,7 @@ class StoreController extends BaseApiController
 
     public function destroy(Store $store): JsonResponse
     {
-        abort_if($store->branches()->exists(), 422, __('validation.custom.cannot_delete_store'));
+        abort_if($store->branches()->exists(), 422, __('stores.cannot_delete_due_branches'));
         $store->logo  ? MediaHandler::deleteMedia($store->logo)  : null;
         $store->image ? MediaHandler::deleteMedia($store->image) : null;
         $store->delete();

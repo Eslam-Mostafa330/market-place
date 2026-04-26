@@ -61,6 +61,11 @@ trait ApiException
             if ($e->errorInfo[1] === 1062) {
                 return ApiResponse::apiResponse(null, __('http-statuses.409'), 409);
             }
+            
+            /** Foreign key constraint (delete restricted) */
+            if ($e->getCode() === '23000' && ($e->errorInfo[1] ?? null) === 1451) {
+                return ApiResponse::apiResponse(null, __('http-statuses.409'), 409);
+            }
             return ApiResponse::apiResponse(null, config('app.debug') ? $e->getMessage() : __('http-statuses.500'), 500);
         }
 

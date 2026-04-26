@@ -89,11 +89,43 @@ class User extends BaseAuthenticatableModel
     }
 
     /**
+     * The rider can deliver many orders
+     */
+    public function riderOrders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'rider_id');
+    }
+
+    /**
+     * The rider can have many payouts
+     */
+    public function riderPayouts(): HasMany
+    {
+        return $this->hasMany(RiderPayout::class, 'rider_id');
+    }
+
+    /**
      * The vendor can have one profile
      */
     public function vendorProfile(): HasOne
     {
         return $this->hasOne(VendorProfile::class);
+    }
+
+    /**
+     * The vendor can have many payouts
+     */
+    public function vendorPayouts(): HasMany
+    {
+        return $this->hasMany(RiderPayout::class, 'vendor_id');
+    }
+
+    /**
+     * Get the store owned by this vendor user.
+     */
+    public function store(): HasOneThrough
+    {
+        return $this->hasOneThrough(Store::class, VendorProfile::class, 'user_id', 'vendor_profile_id');
     }
 
     /**
@@ -113,14 +145,6 @@ class User extends BaseAuthenticatableModel
     }
 
     /**
-     * The rider can deliver many orders
-     */
-    public function riderOrders(): HasMany
-    {
-        return $this->hasMany(Order::class, 'rider_id');
-    }
-
-    /**
      * The customer can review many orders
      */
     public function customerReviews(): HasMany
@@ -135,14 +159,6 @@ class User extends BaseAuthenticatableModel
     {
         return $this->belongsToMany(Product::class, 'favorites', 'customer_id', 'product_id')
             ->withTimestamps();
-    }
-
-    /**
-     * Get the store owned by this vendor user.
-     */
-    public function store(): HasOneThrough
-    {
-        return $this->hasOneThrough(Store::class, VendorProfile::class, 'user_id', 'vendor_profile_id');
     }
 
     /**** ************* ****/

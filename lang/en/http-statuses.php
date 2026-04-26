@@ -34,7 +34,7 @@ return [
     '406'          => 'Not Acceptable',
     '407'          => 'Proxy Authentication Required',
     '408'          => 'Request timeout',
-    '409'          => 'Resource already exists',
+    '409'          => 'Conflict with current resource state',
     '410'          => 'Resource no longer available',
     '411'          => 'Length Required',
     '412'          => 'Precondition Failed',

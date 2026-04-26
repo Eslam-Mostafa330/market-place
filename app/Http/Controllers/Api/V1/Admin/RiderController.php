@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Controllers\Api\V1\Admin\Concerns\AdminAuthorization;
 use App\Http\Requests\Admin\RiderUser\CreateRiderRequest;
 use App\Http\Requests\Admin\RiderUser\UpdateRiderRequest;
 use App\Http\Resources\Admin\RiderUser\RiderUserResource;
@@ -17,6 +18,8 @@ use Illuminate\Support\Facades\DB;
 
 class RiderController extends BaseApiController
 {
+    use AdminAuthorization;
+
     public function __construct(private readonly UserStatusService $userStatusService) {}
 
     public function index(): AnonymousResourceCollection
@@ -52,7 +55,7 @@ class RiderController extends BaseApiController
 
     public function update(UpdateRiderRequest $request, User $rider): JsonResponse
     {
-        abort_unless($rider->isRider(), 422, __('validation.custom.verify_riders'));
+        $this->authorizeRiderAction($rider);
         $data = $request->validated();
 
         $rider = DB::transaction(function () use ($data, $rider) {
@@ -71,7 +74,8 @@ class RiderController extends BaseApiController
 
     public function destroy(User $rider): JsonResponse
     {
-        abort_unless($rider->isRider(), 422, __('validation.custom.verify_riders'));
+        $this->authorizeRiderAction($rider);
+        abort_if($rider->riderPayouts()->exists(), 422, __('riders.cannot_delete_due_payouts'));
         $rider->delete();
         return $this->apiResponseDeleted();
     }
@@ -81,7 +85,7 @@ class RiderController extends BaseApiController
      */
     public function toggleStatus(User $rider): JsonResponse
     {
-        abort_unless($rider->isRider(), 422, __('validation.custom.verify_riders'));
+        $this->authorizeRiderAction($rider);
         $this->userStatusService->toggle($rider);
         return $this->apiResponseUpdated(new ToggleRiderStatusResource($rider));
     }

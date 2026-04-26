@@ -39,8 +39,8 @@ class StoreProductCategoryController extends BaseApiController
 
     public function destroy(ProductCategory $productCategory): JsonResponse
     {
-        abort_if($productCategory->products()->exists(), 422, __('validation.custom.cannot_delete_product_category'));
-        abort_if($productCategory->children()->exists(), 422, __('validation.custom.cannot_delete_category_subcategories'));
+        abort_if($productCategory->products()->exists(), 422, __('product-categories.cannot_delete_due_products'));
+        abort_if($productCategory->children()->exists(), 422, __('product-categories.cannot_delete_due_children'));
         $productCategory->delete();
         return $this->apiResponseDeleted();
     }

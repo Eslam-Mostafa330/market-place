@@ -22,4 +22,49 @@ trait AdminAuthorization
         abort_if(! $admin->isAdmin(), 403, __('validation.custom.verify_admins'));
         abort_if($admin->id === auth()->id(), 403, __('validation.custom.action_denied'));
     }
+
+    /**
+     * Authorize actions performed on rider accounts.
+     *
+     * Ensures that the targeted user record belongs to a rider.
+     * Prevents performing rider-specific operations on non-rider accounts.
+     *
+     * @param \App\Models\User $rider The user instance being targeted by the action.
+     *
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
+     */
+    protected function authorizeRiderAction(User $rider): void
+    {
+        abort_if(! $rider->isRider(), 404);
+    }
+
+    /**
+     * Authorize actions performed on vendor accounts.
+     *
+     * Ensures that the targeted user record belongs to a vendor.
+     * Prevents performing vendor-specific operations on non-vendor accounts.
+     *
+     * @param \App\Models\User $vendor The user instance being targeted by the action.
+     *
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
+     */
+    protected function authorizeVendorAction(User $vendor): void
+    {
+        abort_if(! $vendor->isVendor(), 404);
+    }
+
+    /**
+     * Authorize actions performed on customer accounts.
+     *
+     * Ensures that the targeted user record belongs to a customer.
+     * Prevents performing customer-specific operations on non-customer accounts.
+     *
+     * @param \App\Models\User $customer The user instance being targeted by the action.
+     *
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
+     */
+    protected function authorizeCustomerAction(User $customer): void
+    {
+        abort_if(! $customer->isCustomer(), 404);
+    }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Enums\UserRole;
 use App\Enums\VendorVerificationStatus;
 use App\Http\Controllers\Api\BaseApiController;
+use App\Http\Controllers\Api\V1\Admin\Concerns\AdminAuthorization;
 use App\Http\Requests\Admin\VendorUser\CreateVendorRequest;
 use App\Http\Requests\Admin\VendorUser\UpdateVendorRequest;
 use App\Http\Resources\Admin\VendorUser\ToggleVendorStatusResource;
@@ -16,6 +17,8 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class VendorController extends BaseApiController
 {
+    use AdminAuthorization;
+
     public function __construct(private readonly UserStatusService $userStatusService) {}
 
     public function index(): AnonymousResourceCollection
@@ -41,7 +44,7 @@ class VendorController extends BaseApiController
 
     public function update(UpdateVendorRequest $request, User $vendor): JsonResponse
     {
-        abort_unless($vendor->isVendor(), 422, __('validation.custom.verify_vendors'));
+        $this->authorizeVendorAction($vendor);
         $data = $request->validated();
         $vendor->update($data);
         return $this->apiResponseUpdated(new VendorUserResource($vendor));
@@ -49,7 +52,10 @@ class VendorController extends BaseApiController
 
     public function destroy(User $vendor): JsonResponse
     {
-        abort_unless($vendor->isVendor(), 422, __('validation.custom.verify_vendors'));
+        $this->authorizeVendorAction($vendor);
+        abort_if($vendor->store()->exists(), 422, __('vendors.cannot_delete_due_store'));
+        abort_if($vendor->vendorPayouts()->exists(), 422, __('vendors.cannot_delete_due_payout'));
+        
         $vendor->delete();
         return $this->apiResponseDeleted();
     }
@@ -59,7 +65,7 @@ class VendorController extends BaseApiController
      */
     public function toggleStatus(User $vendor): JsonResponse
     {
-        abort_unless($vendor->isVendor(), 422, __('validation.custom.verify_vendors'));
+        $this->authorizeVendorAction($vendor);
         $this->userStatusService->toggle($vendor);
         return $this->apiResponseUpdated(new ToggleVendorStatusResource($vendor));
     }
