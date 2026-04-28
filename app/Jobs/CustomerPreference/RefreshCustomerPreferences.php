@@ -3,7 +3,7 @@
 namespace App\Jobs\CustomerPreference;
 
 use App\Models\CustomerProfile;
-use App\Services\CustomerPreferencesService;
+use App\Services\Customer\CustomerPreferencesService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Cache;

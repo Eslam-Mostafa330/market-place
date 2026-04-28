@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\DefineStatus;
 use App\Models\User;
+use App\Services\Auth\AuthService;
 use Illuminate\Support\Facades\DB;
 
 class UserStatusService

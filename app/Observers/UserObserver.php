@@ -5,7 +5,7 @@ namespace App\Observers;
 use App\Enums\DefineStatus;
 use App\Enums\UserRole;
 use App\Models\User;
-use App\Services\EmailVerificationService;
+use App\Services\Auth\EmailVerificationService;
 use Illuminate\Support\Facades\Cache;
 
 class UserObserver

@@ -6,7 +6,7 @@ use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Customer\LoyaltyPoints\RedeemPointsRequest;
 use App\Http\Resources\Customer\LoyaltyPoints\LoyaltyPointsResource;
 use App\Models\CustomerProfile;
-use App\Services\LoyaltyService;
+use App\Services\Customer\LoyaltyService;
 
 class LoyaltyController extends BaseApiController
 {

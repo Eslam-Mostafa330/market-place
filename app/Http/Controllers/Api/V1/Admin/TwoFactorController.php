@@ -5,16 +5,13 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Admin\Auth\ResendOtpRequest;
 use App\Http\Requests\Admin\Auth\VerifyOtpRequest;
-use App\Services\AuthService;
-use App\Services\TwoFactorService;
+use App\Services\Auth\AuthService;
+use App\Services\Auth\TwoFactorService;
 use Illuminate\Http\JsonResponse;
 
 class TwoFactorController extends BaseApiController
 {
-    public function __construct(
-        private readonly TwoFactorService $twoFactorService,
-        private readonly AuthService      $authService,
-    ) {}
+    public function __construct(private readonly TwoFactorService $twoFactorService, private readonly AuthService $authService) {}
 
     /**
      * Verify the OTP code and issue tokens on success.

@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api\V1\Vendor;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Vendor\Profile\UpdateVendorProfileRequest;
 use App\Http\Resources\Vendor\Profile\ProfileResource;
-use App\Services\AuthService;
+use App\Services\Auth\AuthService;
 use App\Traits\ClearsCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;

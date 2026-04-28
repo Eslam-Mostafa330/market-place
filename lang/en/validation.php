@@ -179,15 +179,11 @@ return [
     */
 
     'custom' => [
-        'store_has_branches'           => 'Cannot delete the store since it has a related branches.',
-        'store_has_products'           => 'Cannot delete the store since it has a related products.',
-        'action_denied'                => 'You cannot perform this action on your own account.',
-        'verify_admins'                => 'The specified user is not an admin.',
-        'verification_status_invalid'  => 'Verification status must be either verified or rejected.',
-        'rejection_reason_required'    => 'A rejection reason is required when the verification status is rejected.',
-        'rejection_reason_prohibited'  => 'Rejection reason cannot be provided when verification status is verified.',
-        'select_subcategory'           => 'Please select a subcategory, not a top-level category',
-        'cannot_update_location'       => 'Cannot update location while the availability status is unavailable',
+        'verification_status_invalid' => 'Verification status must be either verified or rejected.',
+        'rejection_reason_required'   => 'A rejection reason is required when the verification status is rejected.',
+        'rejection_reason_prohibited' => 'Rejection reason cannot be provided when verification status is verified.',
+        'select_subcategory'          => 'Please select a subcategory, not a top-level category',
+        'cannot_update_location'      => 'Cannot update location while the availability status is unavailable',
         'attribute-name' => [
             'rule-name' => 'custom-message',
         ],

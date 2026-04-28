@@ -8,7 +8,7 @@ use App\Http\Requests\Customer\Auth\LoginRequest;
 use App\Http\Requests\Customer\Auth\RegisterRequest;
 use App\Http\Resources\Customer\Auth\RegisterResource;
 use App\Models\User;
-use App\Services\AuthService;
+use App\Services\Auth\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;

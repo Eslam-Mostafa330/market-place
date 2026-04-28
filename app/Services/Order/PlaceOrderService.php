@@ -16,7 +16,7 @@ use App\Models\StoreBranch;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Notifications\Order\NewOrderNotification;
-use App\Services\LoyaltyService;
+use App\Services\Customer\LoyaltyService;
 use App\Services\Payment\PaymentService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -24,7 +24,7 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class PlaceOrderService
 {
-    public function __construct(private readonly OrderPricingCalculatorService $calculator, private readonly PaymentService $paymentService, private readonly LoyaltyService $loyaltyService,) {}
+    public function __construct(private readonly OrderPricingCalculatorService $calculator, private readonly PaymentService $paymentService, private readonly LoyaltyService $loyaltyService) {}
 
     /**
      * Handle the complete order placement workflow including optional payment processing.

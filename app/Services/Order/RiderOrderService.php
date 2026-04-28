@@ -9,7 +9,7 @@ use App\Jobs\Order\FindRiderJob;
 use App\Models\Order;
 use App\Models\User;
 use App\Notifications\Order\OrderStatusUpdatedNotification;
-use App\Services\LoyaltyService;
+use App\Services\Customer\LoyaltyService;
 use App\Services\Payment\RiderPayoutService;
 use App\Services\Payment\VendorPayoutService;
 use Illuminate\Support\Facades\DB;
@@ -17,11 +17,7 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class RiderOrderService
 {
-    public function __construct(
-        private readonly RiderPayoutService  $riderPayoutService,
-        private readonly VendorPayoutService $vendorPayoutService,
-        private readonly LoyaltyService      $loyaltyService,
-    ) {}
+    public function __construct(private readonly RiderPayoutService  $riderPayoutService, private readonly VendorPayoutService $vendorPayoutService, private readonly LoyaltyService $loyaltyService) {}
 
     /**
      * Rider rejects the assigned order.

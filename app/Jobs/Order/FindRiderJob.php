@@ -8,7 +8,7 @@ use App\Models\Order;
 use App\Models\User;
 use App\Notifications\Order\AdminOrderEscalationNotification;
 use App\Notifications\Order\RiderAssignedNotification;
-use App\Services\RiderLocationService;
+use App\Services\Rider\RiderLocationService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;

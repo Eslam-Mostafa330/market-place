@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api\V1\Rider;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Rider\Profile\UpdateRiderProfileRequest;
 use App\Http\Resources\Rider\Profile\ProfileResource;
-use App\Services\AuthService;
+use App\Services\Auth\AuthService;
 use App\Traits\ClearsCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;

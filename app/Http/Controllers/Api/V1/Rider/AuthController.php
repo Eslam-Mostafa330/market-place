@@ -8,17 +8,14 @@ use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Rider\Auth\LoginRequest;
 use App\Models\RiderProfile;
 use App\Models\User;
-use App\Services\AuthService;
-use App\Services\RiderLocationService;
+use App\Services\Auth\AuthService;
+use App\Services\Rider\RiderLocationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AuthController extends BaseApiController
 {
-    public function __construct(
-        private readonly AuthService $authService,
-        private readonly RiderLocationService $riderLocationService,
-    ) {}
+    public function __construct(private readonly AuthService $authService, private readonly RiderLocationService $riderLocationService) {}
 
     /**
      * Handle the rider login attempts.

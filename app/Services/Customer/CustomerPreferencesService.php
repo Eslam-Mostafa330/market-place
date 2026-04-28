@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Customer;
 
 use App\Enums\DefineStatus;
 use App\Models\CustomerProfile;

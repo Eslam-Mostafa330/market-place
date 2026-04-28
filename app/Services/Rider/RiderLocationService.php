@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Rider;
 
 use App\Enums\RiderAvailability;
 use App\Models\RiderProfile;

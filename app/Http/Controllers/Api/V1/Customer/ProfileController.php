@@ -6,7 +6,7 @@ use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Customer\Profile\UpdateCustomerProfileRequest;
 use App\Http\Resources\Customer\Profile\ProfileResource;
 use App\Models\User;
-use App\Services\AuthService;
+use App\Services\Auth\AuthService;
 use App\Traits\ClearsCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;

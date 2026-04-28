@@ -6,7 +6,7 @@ use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Rider\Auth\ResendVerificationRequest;
 use App\Http\Requests\Rider\Auth\VerifyEmailRequest;
 use App\Models\User;
-use App\Services\EmailVerificationService;
+use App\Services\Auth\EmailVerificationService;
 use Illuminate\Http\JsonResponse;
 
 class VerificationController extends BaseApiController

@@ -19,8 +19,8 @@ trait AdminAuthorization
      */
     protected function authorizeAdminAction(User $admin): void
     {
-        abort_if(! $admin->isAdmin(), 403, __('validation.custom.verify_admins'));
-        abort_if($admin->id === auth()->id(), 403, __('validation.custom.action_denied'));
+        abort_if(! $admin->isAdmin(), 404);
+        abort_if($admin->id === auth()->id(), 403, __('admins.action_denied'));
     }
 
     /**

@@ -5,17 +5,14 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Enums\UserRole;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Admin\Auth\LoginRequest;
-use App\Services\AuthService;
-use App\Services\TwoFactorService;
+use App\Services\Auth\AuthService;
+use App\Services\Auth\TwoFactorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AuthController extends BaseApiController
 {
-    public function __construct(
-        private readonly AuthService      $authService,
-        private readonly TwoFactorService $twoFactorService,
-    ) {}
+    public function __construct(private readonly AuthService $authService, private readonly TwoFactorService $twoFactorService) {}
 
     /**
      * Handle the admin login attempts, including 2FA checks and OTP sending if required.

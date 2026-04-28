@@ -7,7 +7,7 @@ use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Customer\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Customer\Auth\ResetPasswordRequest;
 use App\Models\User;
-use App\Services\PasswordResetService;
+use App\Services\Auth\PasswordResetService;
 use Illuminate\Http\JsonResponse;
 
 class PasswordResetController extends BaseApiController

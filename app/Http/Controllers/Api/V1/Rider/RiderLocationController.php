@@ -9,7 +9,7 @@ use App\Http\Requests\Rider\Location\UpdateLocationRequest;
 use App\Http\Resources\Rider\Location\LocationResource;
 use App\Http\Resources\Rider\Location\RiderAvailabilityResource;
 use App\Models\RiderProfile;
-use App\Services\RiderLocationService;
+use App\Services\Rider\RiderLocationService;
 use Illuminate\Http\Request;
 
 class RiderLocationController extends BaseApiController
