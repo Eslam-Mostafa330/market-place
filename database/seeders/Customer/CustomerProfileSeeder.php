@@ -20,16 +20,9 @@ class CustomerProfileSeeder extends Seeder
             CustomerProfile::updateOrCreate(
                 ['user_id' => $user->id],
                 [
-                    'date_of_birth'    => fake()->dateTimeBetween('-50 years', '-18 years')->format('Y-m-d'),
-                    'preferences'      => json_encode([
-                        'favorite_categories' => fake()->randomElements(
-                            ['groceries', 'electronics', 'fashion', 'pharmacy', 'food'],
-                            fake()->numberBetween(1, 4)
-                        ),
-                        'preferred_payment'   => fake()->randomElement(['card', 'cod']),
-                    ]),
-                    'wallet_balance'   => fake()->randomFloat(2, 0, 350),
-                    'loyalty_points'   => fake()->numberBetween(0, 12500),
+                    'date_of_birth'  => fake()->dateTimeBetween('-50 years', '-18 years')->format('Y-m-d'),
+                    'wallet_balance' => fake()->randomFloat(2, 0, 350),
+                    'loyalty_points' => fake()->numberBetween(0, 12500),
                 ]
             );
         }

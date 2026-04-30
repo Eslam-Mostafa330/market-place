@@ -23,14 +23,6 @@ class BusinessCategorySeeder extends Seeder
                 'description' => 'Restaurants, fast food, cafes, home-cooked meals, pizza, oriental food, desserts and more.',
             ],
             [
-                'name'        => 'Electronics',
-                'description' => 'Mobiles, laptops, accessories, home appliances, gaming, TVs and electronic gadgets.',
-            ],
-            [
-                'name'        => 'Fashion',
-                'description' => 'Clothing for men, women, kids, shoes, accessories, modest wear and seasonal fashion.',
-            ],
-            [
                 'name'        => 'Home & Kitchen',
                 'description' => 'Furniture, kitchenware, home decor, bedding, appliances and household essentials.',
             ],

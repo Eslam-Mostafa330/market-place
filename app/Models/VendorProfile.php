@@ -22,20 +22,8 @@ class VendorProfile extends BaseModel
         'business_description',
         'business_phone',
         'business_email',
-        'rating',
-        'total_orders',
         'verification_status',
         'rejection_reason',
-    ];
-
-    /**
-     * The attributes that should be defaulted when creating a new model instance.
-     *
-     * @var list<string>
-     */
-    protected $attributes = [
-        'rating'       => 0,
-        'total_orders' => 0,
     ];
 
     /**
@@ -47,7 +35,6 @@ class VendorProfile extends BaseModel
     {
         return [
             'verification_status' => VendorVerificationStatus::class,
-            'rating'              => 'decimal:2',
         ];
     }
 

@@ -11,28 +11,68 @@ use Illuminate\Support\Str;
  */
 class StoreFactory extends Factory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
-        $company = $this->faker->company();
-        $suffixes = ['Store', 'Market', 'Shop', 'Outlet', 'Hub', 'Express'];
-        $baseName = $company . ' ' . $this->faker->randomElement($suffixes);
-        $unique = $this->faker->numberBetween(1000, 9999);
-        $name = "$baseName $unique";
-        $slug = Str::slug($name);
-        $description = 'Lorem Ipsum is simply dummy text of the printing and typesetting industry.';
+        $category = BusinessCategory::inRandomOrder()->first();
+
+        [$name, $slug] = $this->generateStoreName($category?->name);
 
         return [
             'name'                 => $name,
             'slug'                 => $slug,
-            'description'          => $description,
-            'logo'                 => 'stores/logos/' . $slug . '-' . $this->faker->randomNumber(4) . '.jpg',
-            'image'                => 'stores/images/' . $slug . '-' . $this->faker->randomNumber(4) . '.png',
-            'business_category_id' => BusinessCategory::inRandomOrder()->first()?->id,
+            'description'          => $category?->description ?? 'Store description',
+            'commission_rate'      => fake()->randomFloat(2, 5, 20),
+            'logo'                 => 'stores/logos/' . $slug . '.jpg',
+            'image'                => 'stores/images/' . $slug . '.png',
+            'business_category_id' => $category?->id,
         ];
+    }
+
+    private function generateStoreName(?string $category): array
+    {
+        $names = match ($category) {
+            'Groceries' => [
+                'Fresh Basket',
+                'Daily Mart',
+                'Green Valley',
+                'Family Grocers',
+                'Prime Foods',
+            ],
+            'Food & Restaurants' => [
+                'Golden Spoon',
+                'Urban Bites',
+                'Spice House',
+                'Taste Haven',
+                'Grill & Chill',
+            ],
+            'Home & Kitchen' => [
+                'Cozy Living',
+                'Home Essentials',
+                'Kitchen Corner',
+                'Modern Nest',
+                'Comfort House',
+            ],
+            'Health & Pharmacy' => [
+                'CarePlus',
+                'Health Hub',
+                'Wellness Store',
+                'MediCare',
+                'Life Aid',
+            ],
+            'Flowers & Gifts' => [
+                'Bloom & Bliss',
+                'Petal House',
+                'Gift Corner',
+                'Flora World',
+                'Sweet Surprises',
+            ],
+            default => [$this->faker->company()],
+        };
+
+        $base = $this->faker->randomElement($names);
+        $name = $base . ' ' . $this->faker->city();
+        $slug = Str::slug($name);
+
+        return [$name, $slug];
     }
 }

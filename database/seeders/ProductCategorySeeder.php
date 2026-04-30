@@ -53,21 +53,6 @@ class ProductCategorySeeder extends Seeder
                 'Biscuits',
             ],
 
-            // Electronics categories
-            'Mobiles' => [
-                'Apple',
-                'Samsung',
-                'Oppo',
-            ],
-            'Laptops' => [
-                'Asus',
-                'Dell',
-                'Lenovo',
-            ],
-
-            // Fashion categories (parent)
-            'Men Clothing' => [],
-
             // Health & Personal Care categories
             'Medicines' => [
                 'Pain Relief',

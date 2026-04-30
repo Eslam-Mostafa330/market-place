@@ -30,6 +30,7 @@ A comprehensive RESTful API for a multi-vendor food/product delivery marketplace
   - [Redis Setup (Windows)](#redis-setup-windows)
   - [Stripe Setup](#stripe-setup)
   - [Queue Workers](#queue-workers)
+- [Admin First Login (OTP Walkthrough)](#-admin-first-login-otp-walkthrough)
 - [API Overview](#-api-overview)
 - [API Documentation](#-api-documentation)
 - [Authentication & Security](#-authentication--security)
@@ -63,13 +64,15 @@ Business logic lives in dedicated service classes (e.g., `AuthService`, `PlaceOr
 ### Enum-Driven Domain
 States and types across the system are strongly typed via PHP enums: `OrderStatus`, `VendorVerificationStatus`, `CancellationReason`, `PayoutStatus`, `RiderAvailability`, `CouponType`, `SettingKey`, etc. This makes transitions explicit and validation trivial.
 
-Enum values are stored as **`tinyInt`** in the database rather than strings — a deliberate performance choice that reduces storage size, speeds up indexed lookups, and keeps the database layer lean while the application layer handles all human-readable mapping.
+Enum values are stored as **`tinyInt`** in the database rather than strings — a deliberate performance choice that reduces storage size, speeds up indexed lookups, and keeps the database layer lean while the application layer handles the human-readable mapping.
 
 ### Standardized API Responses
 A global response wrapper and API exception to ensures every endpoint returns a consistent JSON envelope — success flag, HTTP status, message, and data — simplifying frontend integration.
 
 ### Global N+1 Prevention
-Lazy loading is disabled in `AppServiceProvider`, forcing all relations to be explicitly eager-loaded and catching N+1 issues at development time.
+Lazy loading is disabled in `AppServiceProvider` in **development mode only**, forcing all relationships to be explicitly eager-loaded and surfacing N+1 query issues during development.
+
+In **production**, lazy loading is allowed to avoid throwing exceptions that could impact real users if an issue slips through.
 
 ### Custom Stubs
 Modified artisan stubs ensure every generated model, controller, and migration follows the project's conventions (UUID keys, standardized structure) out of the box.
@@ -122,7 +125,7 @@ Modified artisan stubs ensure every generated model, controller, and migration f
 ### Order Lifecycle
 
 ```
-PENDING → ACCEPTED → PREPARING → WAITING_RIDER → PICKED_UP → DELIVERED
+PENDING → ACCEPTED → PREPARING → WAITING_RIDER → RIDER_ASSIGNED → PICKED_UP → DELIVERED
                                                 ↘ (rejected by rider → WAITING_RIDER again)
 Any cancellable state → CANCELLED
 ```
@@ -266,7 +269,6 @@ routes/api/v1/
 - MySQL 8.0+
 - Redis (see below for Windows setup)
 - Stripe CLI (for local webhook testing)
-- Node.js (optional, for asset compilation)
 
 ### Installation
 
@@ -318,28 +320,40 @@ For Windows, install **Memurai** (a Redis-compatible server for Windows):
    REDIS_PORT=6379
    ```
 
-### Stripe Setup
+### Stripe Test Setup & Payment Verification
 
-For local payment testing without a live server, use the **Stripe CLI** to forward webhooks:
-
+#### 1) Install and authenticate Stripe CLI
 ```bash
 # Install Stripe CLI, then:
 stripe login
-stripe listen --forward-to localhost:8000/api/v1/stripe/webhook
 ```
 
-Copy the webhook signing secret from the CLI output into your `.env`:
+#### 2) Start webhook listener
+```bash
+stripe listen --forward-to localhost:8000/api/v1/stripe/webhook
+```
+Copy the webhook signing secret from the CLI output and add your Stripe test credentials from your Stripe dashboard (test mode) into your `.env`:
 ```env
 STRIPE_KEY=pk_test_...
 STRIPE_SECRET=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 ```
+> Get `STRIPE_KEY` and `STRIPE_SECRET` from your Stripe account in test mode (not live mode).
 
-Then verify the payment process:
+#### 3) Trigger a test payment from your API
+From a customer account, call the place order endpoint using:
+- `payment_method = 1` (Visa test card)
+
+#### 4) Verify the payment via **Stripe CLI**
+Copy the `pi_XXXXXXXX` from the order response and run:
 ```bash
-# Verify payment via terminal:
-stripe payment_intents confirm pi_3TRMDdPULxx... --payment-method=pm_card_visa
+stripe payment_intents confirm pi_XXXXXXXX --payment-method=pm_card_visa
 ```
+
+**Notes**
+- `pm_card_visa` is a Stripe test payment method that always succeeds.
+- Keep the `stripe listen` command running while testing.
+- Ensure your local server is running on `localhost:8000`.
 
 ### Queue Workers
 
@@ -353,6 +367,100 @@ php artisan queue:work \
 > **Queue priority**: `rider-matching` is first — rider assignment jobs are processed before all other notifications, ensuring minimal order delays.
 
 For production, use **Supervisor** to keep workers running persistently.
+
+---
+
+## Admin First Login (OTP Walkthrough)
+
+Admin accounts use **Two-Factor Authentication (OTP)** on every login. The OTP is sent via email, so two things must be in place before attempting to log in:
+
+1. **Queue worker is running** — OTP emails are dispatched as queued jobs.
+2. **Mail is configured** — the project uses [Mailtrap](https://mailtrap.io) for local email testing.
+
+### 1) Configure Mailtrap
+
+Add your Mailtrap SMTP credentials to `.env`:
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=sandbox.smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=your_mailtrap_username
+MAIL_PASSWORD=your_mailtrap_password
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS="noreply@marketplace.com"
+MAIL_FROM_NAME="Marketplace Platform"
+```
+
+> Get your credentials from your [Mailtrap inbox](https://mailtrap.io) under **SMTP Settings**.
+
+### 2) Start the Queue Worker
+
+The OTP email is dispatched via a queued job — the worker must be running or the email will never be sent:
+
+```bash
+php artisan queue:work \
+  --queue=rider-matching,rider-assigned,new-order,admin-order-escalation,order-status-change,cancel-order,default,refresh-user-preference
+```
+
+### 3) Login — Step 1: Submit Credentials
+
+`POST /api/v1/admin/auth/login`
+
+```json
+{
+  "email": "admin@example.com",
+  "password": "password"
+}
+```
+
+If credentials are valid, the response returns a short-lived `temp_token` instead of a full access token. No token is issued until OTP is verified.
+
+```json
+{
+    "data": {
+        "temp_token": "4mhyneZkYvYP6sR60vFgvVmCajwM6LoyRYyThjdQLMc3XqDBiB1FCpHcMRpjhiq6"
+    },
+    "status": true,
+    "code": 200
+}
+```
+
+At this point, an OTP code has been dispatched to the admin's email via the queue. Check your Mailtrap inbox for it.
+
+### 4) Login — Step 2: Verify OTP
+
+`POST /api/v1/admin/auth/otp/verify`
+
+```json
+{
+  "temp_token": "4mhyneZkYvYP6sR60vFgvVmCajwM6LoyRYyThjdQLMc3XqDBiB1FCpHcMRpjhiq6",
+  "code": "355944"
+}
+```
+
+On success, the full access and refresh tokens are issued:
+
+```json
+{
+    "message": "Welcome back to your account!",
+    "data": {
+        "access_token": "1|eKxiNn2OGVci3QYieF2erGpn6L3l07rO54G6GVN96992af06",
+        "refresh_token": "2|Ault4qJ7gA5C2eDoEJzYtpi5EcndXk4CIOXBj3FEa0aaf335",
+        "user": {
+            "id": "019d91b5-dfb9-7067-9608-f7a6ddc2df4c",
+            "name": "Admin",
+            "email": "admin@example.com",
+            "role": 1
+        }
+    },
+    "status": true,
+    "code": 200
+}
+```
+
+Use `access_token` as a Bearer token for all subsequent admin requests. The OTP is valid for **30 days** on trusted devices — repeat logins from the same browser will skip the OTP step.
+
+> **Troubleshooting**: If the OTP email never arrives, confirm the queue worker is running and that your Mailtrap credentials are correct. You can also check Laravel Telescope at `http://localhost:8000/telescope` to inspect the queued job and mail status.
 
 ---
 
@@ -435,7 +543,7 @@ POST   /api/v1/stores/{category_slug}/{store_slug}/products/{product_slug}/favor
 - **SPA / Web** → Stateful Sanctum cookies (`statefulApi` enabled)
 - Extended `PersonalAccessToken` model to support `session_id` tracking
 ### Two-Factor Authentication
-OTP-based 2FA is currently enabled for **Admin** accounts. Other roles can be enabled by adding them to `config/two_factor.php` — no code changes required.
+OTP-based 2FA is currently enabled for **Admin** accounts. Other roles can be enabled by adding them to `config/two_factor.php`.
  
 Admin 2FA flow:
 1. Credentials validated → OTP emailed if 2FA enabled
@@ -532,7 +640,7 @@ Rider picks up → delivers
         ▼
 [RiderOrderService::deliverOrder]
   ├── Mark order DELIVERED
-  ├── Set payment_status = PAID (cash) or await Stripe webhook (card)
+  ├── Set payment_status = PAID (cash) or set to PAID directly if using visa via Stripe webhook (card)
   ├── Create RiderPayout + VendorPayout
   ├── Award loyalty points to customer (based on net paid amount)
   │     └── Points accumulate → redeemable via POST /customer/loyalty/redeem → credited to wallet
@@ -552,13 +660,13 @@ Rider picks up → delivers
 | Vendor store list | Cached per vendor (60 days) |
 | Notification listing | Cursor-based pagination (better than offset for large sets) |
 | Settings | Cached indefinitely, cleared on admin update |
-| Indexes | Added on `orders`, `order_items`, `reviews` for aggregation queries |
+| Indexes | Added on `users.role` to avoid full table scans, leveraging B-tree indexes for O(log n) lookups instead of O(n); additional indexes on `orders`, `order_items`, `reviews` to optimize aggregation queries |
 | N+1 prevention | `Model::preventLazyLoading()` enabled globally |
 | Job payloads | Primitive IDs dispatched (not full models) to reduce queue memory |
 | Notifications | Queued async on dedicated named queues |
 | Race conditions | `lockForUpdate()` on order numbers, coupons, stock, reviews |
-| Query optimization | Selective column retrieval, strategic joins over nested ORM
-  relations, raw queries for heavy aggregations, proper data types (e.g. tinyInt for flags), and index-aware query design
+| Query optimization | Selective column retrieval, strategic joins over nested ORM relations where appropriate, raw queries for heavy aggregations, proper data types (e.g., `tinyint` for flags), and index-aware query design |
+
 ---
 
 ## Scheduled Commands
@@ -568,8 +676,8 @@ Rider picks up → delivers
 | `DeleteExpiredTokens` | Daily at **2:00 AM** | Removes expired personal access tokens from the database |
 | `DeleteExpiredTwoFactorData` | Daily at **1:00 AM** | Deletes unused expired OTP codes and stale trusted device records |
 | `MarkStaleRidersUnavailable` | Every **10 minutes** | Marks riders as unavailable if they have not sent a location update in the last 10 minutes — ensures stale GPS entries don't interfere with rider assignment |
-| Activity log cleanup | Daily | Prunes `spatie/laravel-activitylog` records older than **90 days** |
-| `RefreshCustomerPreferences` | Nightly (full rebuild) | Rebuilds all customer preference scores from scratch |
+| Activity log cleanup | Daily at **12:00 AM** | Prunes `spatie/laravel-activitylog` records older than **90 days** |
+| `RefreshCustomerPreferences` | Daily at **03:00 AM** (full rebuild) | Rebuilds all customer preference scores from scratch |
 
 ---
 
@@ -619,6 +727,7 @@ $service->updateRiderLocation($riderProfile, 30.01225878, 31.32566761);
 This repository is intended for **educational and demonstration purposes only**.
 
 This code is made publicly available for portfolio and evaluation purposes. All business logic, names, and data structures are generic and not associated with any real company or service.
+
 ---
 
 <div align="center">
