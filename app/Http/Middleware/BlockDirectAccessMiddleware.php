@@ -9,19 +9,17 @@ use Symfony\Component\HttpFoundation\Response;
 class BlockDirectAccessMiddleware
 {
     /**
-     * Handle an incoming request.
-     * 
-     * This middleware restricts direct access to the application by validating
-     * the request origin or referer against a predefined list of allowed
-     * frontend domains. Requests originating from untrusted sources are blocked.
+     * Lightweight request filter to reduce unsolicited / automated traffic.
+     *
+     * This middleware is for reduces noise from
+     * direct access attempts and automated scanners.
      *
      * Behavior:
-     * - Allows all requests in the local environment for development flexibility.
-     * - Allows all OPTIONS requests to ensure proper handling of CORS preflight.
-     * - Validates Origin and Referer headers against configured frontend URLs.
-     * - Returns a 404 response for unauthorized direct access attempts.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * - Allows all requests in local environment
+     * - Allows OPTIONS requests (CORS preflight)
+     * - Allows requests with Bearer tokens (API / mobile clients)
+     * - Allows browser requests from trusted frontend domains
+     * - Returns 404 for all other requests
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -33,18 +31,33 @@ class BlockDirectAccessMiddleware
             return $next($request);
         }
 
+        if ($request->bearerToken()) {
+            return $next($request);
+        }
+
         $allowedOrigins = array_filter([
             env('FRONTEND_URL'),
             env('FRONTEND_URL_WWW'),
         ]);
 
-        $origin  = $request->header('Origin', '');
-        $referer = $request->header('Referer', '');
+        $origin  = $request->header('Origin');
+        $referer = $request->header('Referer');
 
-        $isAllowed = collect($allowedOrigins)->contains(
-            fn($domain) => str_starts_with($origin, $domain) || str_starts_with($referer, $domain)
-        );
+        $originHost = $origin
+            ? (parse_url($origin, PHP_URL_HOST) ?: null)
+            : null;
 
-        return $isAllowed ? $next($request) : response('', 404);
+        $refererHost = $referer
+            ? (parse_url($referer, PHP_URL_HOST) ?: null)
+            : null;
+
+        $allowedHosts = collect($allowedOrigins)
+            ->map(fn ($url) => parse_url($url, PHP_URL_HOST) ?: null)
+            ->filter();
+
+        $isFromFrontend = $allowedHosts->contains($originHost)
+            || $allowedHosts->contains($refererHost);
+
+        return $isFromFrontend ? $next($request) : response('', 404);
     }
 }
