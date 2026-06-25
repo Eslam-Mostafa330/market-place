@@ -287,7 +287,7 @@ cp .env.example .env
 php artisan key:generate
 
 # 5. Configure your .env
-# Set DB_*, REDIS_*, STRIPE_*, FRONTEND_URL, FRONT_URL, MAIL_* variables
+# Set DB_*, REDIS_*, STRIPE_*, FRONTEND_URL, FRONTEND_URL_WWW, MAIL_* variables
 
 # 6. Run migrations
 php artisan migrate
@@ -540,7 +540,6 @@ POST   /api/v1/stores/{category_slug}/{store_slug}/products/{product_slug}/favor
  
 ### Token Strategy
 - **Mobile clients** → Bearer token (Sanctum Personal Access Tokens)
-- **SPA / Web** → Stateful Sanctum cookies (`statefulApi` enabled)
 - Extended `PersonalAccessToken` model to support `session_id` tracking
 ### Two-Factor Authentication
 OTP-based 2FA is currently enabled for **Admin** accounts. Other roles can be enabled by adding them to `config/two_factor.php`.
@@ -554,13 +553,14 @@ Admin 2FA flow:
 - Credentials support enabled for cookie-based SPA auth
 - All origins allowed in local environment for testing tools (e.g. Postman, ApiDog)
 ### Origin Enforcement (`BlockDirectAccessMiddleware`)
-- Blocks requests from unauthorized origins at the middleware level
+- Lightweight request filter to reduce unsolicited / automated traffic
+- For reduces noise from direct access attempts and automated scanners.
 - `OPTIONS` preflight requests are allowed through before origin validation
 - `HandleCors` runs before `BlockDirectAccess` to ensure proper CORS headers on blocked responses
 - Bypassed in local environment to avoid friction during development
 ### Rate Limiting (Custom Middleware)
 ```
-Auth endpoints:         10 requests / minute
+Auth endpoints:         6 requests / minute
 Form submissions:       20 requests / minute
 General API routes:     60 requests / minute
 Throttle key:           IP + user ID (prevents shared-IP bypass)

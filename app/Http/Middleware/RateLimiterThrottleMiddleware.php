@@ -97,7 +97,7 @@ class RateLimiterThrottleMiddleware
     protected function resolveMaxAttempts(string $limiterName): int
     {
         return match ($limiterName) {
-            'auth'    => 10,
+            'auth'    => 6,
             'forms'   => 20,
             'general' => 60,
             default   => 60,
