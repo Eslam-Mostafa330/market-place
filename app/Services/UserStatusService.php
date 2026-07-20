@@ -9,15 +9,13 @@ use Illuminate\Support\Facades\DB;
 
 class UserStatusService
 {
-    public function __construct(private AuthService $authService) {}
+    public function __construct(private readonly AuthService $authService) {}
 
     /**
      * Toggle the active/inactive status of a user and persist the change.
      *
-     * If the user is being deactivated, all of their active access tokens
-     * will be revoked immediately to terminate any ongoing sessions.
-     * The status update and token revocation are wrapped in a transaction
-     * to ensure consistency.
+     * Deactivating a user revokes all of their access
+     * (tokens and web sessions) in the same transaction
      *
      * @param  User  $user  The user whose status will be toggled.
      * @return DefineStatus The new status after toggling.
@@ -32,7 +30,7 @@ class UserStatusService
             $user->update(['status' => $newStatus]);
 
             if ($newStatus === DefineStatus::INACTIVE) {
-                $this->authService->revokeAllTokens($user);
+                $this->authService->revokeAllAccess($user);
             }
         });
 

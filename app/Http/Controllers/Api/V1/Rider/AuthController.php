@@ -33,7 +33,7 @@ class AuthController extends BaseApiController
         $user = $this->authService->attemptLogin($credentials, UserRole::RIDER);
 
         if ($user) {
-            return $this->apiResponse($this->authService->issueTokens($user), __('auth.auth_success'));
+            return $this->apiResponse($this->authService->grantAccess($user, $request), __('auth.auth_success'));
         }
 
         $messageKey = $isEmail ? 'auth_email_failed' : 'auth_phone_failed';
@@ -46,19 +46,19 @@ class AuthController extends BaseApiController
      */
     public function refreshToken(Request $request): JsonResponse
     {
-        $result = $this->authService->refresh($request->user());
+        $result = $this->authService->refresh($request->user(), $request);
 
         return $this->apiResponse($result, __('auth.token_refreshed'));
     }
 
     /**
-    * Logout the user by revoking all their tokens.
+    * Logout the user, invalidating their web session or revoking their tokens.
     * Requires the user to be authenticated.
     */
     public function logout(Request $request): JsonResponse
     {
         $this->markRiderUnavailable($request->user());
-        $this->authService->logout($request->user());
+        $this->authService->logout($request);
         return $this->apiResponse([], __('auth.logged_out'));
     }
 

@@ -59,8 +59,6 @@ class UserObserver
      */
     public function updated(User $user): void
     {
-        $this->handleStatusChange($user);
-
         if ($user->wasChanged('email')) {
             $this->handleEmailChange($user);
         }
@@ -72,16 +70,6 @@ class UserObserver
     public function deleted(User $user): void
     {
         $this->clearUserCountCache();
-    }
-
-    /**
-     * Revoke all tokens when a user becomes inactive.
-     */
-    private function handleStatusChange(User $user): void
-    {
-        if ($user->wasChanged('status') && $user->status === DefineStatus::INACTIVE) {
-            $user->tokens()->delete();
-        }
     }
 
     /**

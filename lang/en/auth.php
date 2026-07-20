@@ -21,6 +21,7 @@ return [
     'reset_link_invalid'       => 'The password reset link is invalid or has expired.',
     'email_not_found'          => 'No account found with this email address.',
     'token_refreshed'          => 'Access token has been refreshed successfully.',
+    'token_refresh_not_allowed' => 'Token refresh is not available for web sessions.',
     'otp_invalid'              => 'The OTP code is invalid or has expired.',
     'otp_resent'               => 'A new OTP code has been sent to your email.',
     'otp_throttle'             => 'An OTP code was recently sent. Please wait before requesting a new one.',

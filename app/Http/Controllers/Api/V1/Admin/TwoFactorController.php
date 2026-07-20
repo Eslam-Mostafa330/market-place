@@ -22,7 +22,7 @@ class TwoFactorController extends BaseApiController
 
         $this->twoFactorService->trustDevice($user->id, $request);
 
-        return $this->apiResponse($this->authService->issueTokens($user), __('auth.auth_success'));
+        return $this->apiResponse($this->authService->grantAccess($user, $request), __('auth.auth_success'));
     }
 
     /**

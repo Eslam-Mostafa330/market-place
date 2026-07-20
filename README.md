@@ -31,6 +31,7 @@ A comprehensive RESTful API for a multi-vendor food/product delivery marketplace
   - [Stripe Setup](#stripe-setup)
   - [Queue Workers](#queue-workers)
 - [Admin First Login (OTP Walkthrough)](#admin-first-login-otp-walkthrough)
+- [Web (SPA) Login Flow](#web-spa-login-flow)
 - [API Overview](#api-overview)
 - [API Documentation](#api-documentation)
 - [Authentication & Security](#authentication--security)
@@ -104,9 +105,9 @@ Modified artisan stubs ensure every generated model, controller, and migration f
 - **Two-Factor Authentication (OTP)** — currently enabled for **Admin** accounts only; additional roles can be configured in `config/two_factor.php` without code changes
 - Email verification with rate-limited resend (3 attempts / 10 min)
 - Password reset flow per role
-- Token revocation on password change (logout from all other devices)
-- Token revocation on account deactivation (security enforcement)
-- Separate credential validation from token issuance — tokens are never issued until 2FA passes
+- Logout from all other devices on password change — other tokens (mobile) or other sessions (web) are invalidated
+- Access revocation on account deactivation — the user's API tokens **and** server-side web sessions are deleted in one transaction, immediately signing them out of **both** mobile and web
+- Separate credential validation from access issuance — no access (token or session) is granted until 2FA passes
 
 ### Vendor & Store Management
 - Vendor registration with `INCOMPLETE` → `PENDING` → `VERIFIED` / `REJECTED` verification flow
@@ -299,6 +300,25 @@ php artisan db:seed
 php artisan storage:link
 ```
 
+### Web (SPA) Session Config
+
+The API serves **mobile clients via Bearer tokens** and the **web SPA via httpOnly session cookies** from the same endpoints — the client is detected per request from its origin. For the SPA to be treated as stateful, add its host(s) to `.env`. **The port is significant** — `localhost` does not match `localhost:5173`:
+
+```env
+# Hosts whose requests use cookie/session auth (the SPA)
+SANCTUM_STATEFUL_DOMAINS=localhost:5173,localhost:3000
+
+# Sessions are stored server-side so they can be revoked individually
+SESSION_DRIVER=database
+
+# Local runs over http, so Secure cookies would not be returned by the browser
+SESSION_SECURE_COOKIE=false   # set to true in production (https)
+SESSION_SAME_SITE=lax
+SESSION_DOMAIN=localhost
+```
+
+> The SPA must send credentials with every request (`withCredentials: true` in axios / `credentials: 'include'` in fetch) and call `GET /sanctum/csrf-cookie` before its first `POST`.
+
 ### Redis Setup (Windows)
 
 This project uses `predis/predis` (pure PHP Redis client) — no PHP extension required, making it simple to introduce Redis in any environment.
@@ -460,7 +480,60 @@ On success, the full access and refresh tokens are issued:
 
 Use `access_token` as a Bearer token for all subsequent admin requests. The OTP is valid for **30 days** on trusted devices — repeat logins from the same browser will skip the OTP step.
 
+> **Web SPA**: from a stateful origin the same two-step flow returns a `user` and sets an httpOnly session cookie instead of `access_token` / `refresh_token`. See [Web (SPA) Login Flow](#web-spa-login-flow).
+
 > **Troubleshooting**: If the OTP email never arrives, confirm the queue worker is running and that your Mailtrap credentials are correct. You can also check Laravel Telescope at `http://localhost:8000/telescope` to inspect the queued job and mail status.
+
+---
+
+## Web (SPA) Login Flow
+
+Web clients authenticate **statefully** — no tokens are stored in the browser. The session lives in an **httpOnly cookie** that JavaScript cannot read, which is the main advantage over keeping a token in `localStorage`. The same auth endpoints are used as mobile; the API returns a session (not tokens) when the request comes from a stateful origin (see [`SANCTUM_STATEFUL_DOMAINS`](#web-spa-session-config)).
+
+### 1) Prime the CSRF cookie
+
+`GET /sanctum/csrf-cookie` → sets the `XSRF-TOKEN` (JS-readable) and session (httpOnly) cookies. Axios then returns the token automatically in the `X-XSRF-TOKEN` header on later requests.
+
+### 2) Login
+
+`POST /api/v1/customer/auth/login` with the `X-XSRF-TOKEN` header. The response contains only the `user` — **no tokens** — and sets the session cookie:
+
+```json
+{
+    "message": "Welcome back to your account!",
+    "data": {
+        "user": {
+            "id": "019ddc0a-3e2c-72c7-ac7c-80af5b99605b",
+            "name": "Customer 1",
+            "email": "customer1@demo.test",
+            "role": 3
+        }
+    },
+    "status": true,
+    "code": 200
+}
+```
+
+### 3) Authenticated requests
+
+Send subsequent requests with the cookie. `auth:sanctum` resolves the user from the session, and the role middleware (`isAdmin`, `isCustomer`, …) authorizes by the user's `role` — **identical to the token path**. On a hard refresh the browser keeps the cookie but loses in-memory state, so the SPA re-hydrates by calling a "current user" endpoint: `200` → logged in (use `role` to render the UI), `401` → redirect to login.
+
+```bash
+# 1. CSRF cookie
+curl -c jar.txt -H "Origin: http://localhost:5173" http://localhost:8000/sanctum/csrf-cookie
+
+# 2. Login (send the decoded XSRF-TOKEN cookie back as the header)
+curl -b jar.txt -c jar.txt -H "Origin: http://localhost:5173" -H "X-XSRF-TOKEN: <token>" \
+  -H "Accept: application/json" -H "Content-Type: application/json" \
+  -d '{"identifier":"customer1@demo.test","password":"password"}' \
+  http://localhost:8000/api/v1/customer/auth/login
+
+# 3. Cookie-authenticated request — no Authorization header
+curl -b jar.txt -H "Origin: http://localhost:5173" -H "Accept: application/json" \
+  http://localhost:8000/api/v1/customer/profile
+```
+
+> **Notes**: Login rotates the CSRF token (via session regeneration), so read the `XSRF-TOKEN` cookie fresh before each request — axios does this automatically. Token **refresh** (`/refresh`) is mobile-only and returns `403` for web sessions.
 
 ---
 
@@ -538,9 +611,12 @@ POST   /api/v1/stores/{category_slug}/{store_slug}/products/{product_slug}/favor
 
 ## Authentication & Security
  
-### Token Strategy
-- **Mobile clients** → Bearer token (Sanctum Personal Access Tokens)
-- Extended `PersonalAccessToken` model to support `session_id` tracking
+### Auth Strategy (Dual)
+- **Mobile clients** → Bearer token (Sanctum Personal Access Tokens); extended `PersonalAccessToken` model adds `session_id` to pair access/refresh tokens
+- **Web SPA** → stateful **httpOnly session cookie**, CSRF-protected, not readable by JavaScript (no tokens exposed to the browser)
+- **Server-side sessions** (`database` driver) — sessions are revocable: they can be invalidated individually on deactivation, password change, or per-device sign-out, which a client-stored session cannot
+- The client is detected per request from its origin (`SANCTUM_STATEFUL_DOMAINS`) — one set of endpoints serves both; role authorization (`isAdmin`, `isCustomer`, …) is guard-agnostic and reads `user.role`
+- Token refresh is a mobile-only concept — web sessions are rejected from the `/refresh` endpoint
 ### Two-Factor Authentication
 OTP-based 2FA is currently enabled for **Admin** accounts. Other roles can be enabled by adding them to `config/two_factor.php`.
  
