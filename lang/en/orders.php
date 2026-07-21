@@ -12,7 +12,10 @@ return [
     'coupon_not_active_yet'      => 'This coupon is not active yet.',
     'coupon_expired'             => 'This coupon has expired.',
     'coupon_usage_reached'       => 'You have reached the usage limit for this coupon.',
+    'coupon_minimum_order'       => 'This coupon requires a minimum order of :amount.',
     'not_belongs_to_store'       => "Product ':name' does not belong to this store.",
     'unavailable'                => "Product ':name' is currently unavailable.",
     'not_enough_stock'           => "Not enough stock for ':name'.",
+    'product_not_found'          => 'One or more products were not found.',
+    'payment_not_completed'      => 'Cancelled automatically because payment was not completed.',
 ];

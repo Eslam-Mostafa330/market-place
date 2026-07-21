@@ -9,6 +9,15 @@ use App\Models\StoreBranch;
 class OrderPricingCalculatorService
 {
     /**
+     * Share of the discounted subtotal that wallet balance may cover.
+     *
+     * This is the single source of truth for the cap; it is applied to the
+     * discounted subtotal, so the delivery fee always remains payable in cash
+     * or by card.
+     */
+    private const MAX_WALLET_SHARE = 0.50;
+
+    /**
      * Calculates all pricing components for an order.
      *
      * This method aggregates item costs, applies delivery fees, processes any
@@ -37,7 +46,7 @@ class OrderPricingCalculatorService
         $discount    = $this->calculateDiscount($coupon, $subtotal);
         $discountedSubtotal = round($subtotal - $discount, 2);
 
-        $walletDiscount = min($walletDiscount, round($discountedSubtotal * 0.50, 2));
+        $walletDiscount = min($walletDiscount, round($discountedSubtotal * self::MAX_WALLET_SHARE, 2));
         $total = round($discountedSubtotal + $deliveryFee - $walletDiscount, 2);
         $commissionAmount = round($discountedSubtotal * ($commissionRate / 100), 2);
 

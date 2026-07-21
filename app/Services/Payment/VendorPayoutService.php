@@ -7,6 +7,7 @@ use App\Enums\PayoutStatus;
 use App\Models\Order;
 use App\Models\RiderPayout;
 use App\Models\VendorPayout;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Illuminate\Support\Arr;
@@ -25,9 +26,20 @@ class VendorPayoutService
             return;
         }
 
+        $vendorId = $order->store?->vendorProfile?->user_id;
+
+        if (! $vendorId) {
+            Log::error('Cannot create vendor payout: store has no linked vendor profile.', [
+                'order_id' => $order->id,
+                'store_id' => $order->store_id,
+            ]);
+
+            return;
+        }
+
         VendorPayout::query()->insertOrIgnore([
             'id'         => Str::uuid(),
-            'vendor_id'  => $order->store->vendorProfile->user_id,
+            'vendor_id'  => $vendorId,
             'order_id'   => $order->id,
             'amount'     => $order->vendor_earnings,
             'status'     => PayoutStatus::PENDING,
@@ -66,13 +78,13 @@ class VendorPayoutService
      * Validates the payout is already completed.
      *
      * @param VendorPayout $vendorPayout The payout to update.
-     * @param array       $data   Validated input containing payout_method, reference, notes, and payment_proof.
+     * @param array        $data         Validated input containing payout_method, reference, notes, and payment_proof.
      *
      * @return VendorPayout The updated payout.
      */
     public function updatePayoutDetails(VendorPayout $vendorPayout, array $data): VendorPayout
     {
-        $this->validatePayoutNotCompleted($vendorPayout);
+        $this->validatePayoutIsCompleted($vendorPayout);
 
         $vendorPayout->update([
             ...Arr::only($data, ['payout_method', 'reference', 'notes', 'payout_proof']),
@@ -99,7 +111,7 @@ class VendorPayoutService
      *
      * @throws \Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException
      */
-    private function validatePayoutNotCompleted(VendorPayout $vendorPayout): void
+    private function validatePayoutIsCompleted(VendorPayout $vendorPayout): void
     {
         if ($vendorPayout->status !== PayoutStatus::COMPLETED) {
             throw new UnprocessableEntityHttpException(__('payment.payout.not_completed'));

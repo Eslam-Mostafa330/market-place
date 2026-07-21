@@ -21,7 +21,7 @@ class LoyaltyService
      */
     public function awardPoints(Order $order): void
     {
-        $pointsPerUnit = cache()->rememberForever('loyalty_points', fn () => (int) Setting::loyaltyPoints());
+        $pointsPerUnit = cache()->remember('loyalty_points', now()->addMinutes(10), fn () => (int) Setting::loyaltyPoints());
 
         $actualPaid = $order->subtotal - $order->discount - $order->wallet_discount;
 
@@ -48,9 +48,9 @@ class LoyaltyService
             throw new UnprocessableEntityHttpException(__('loyalty.greater_than_zero'));
         }
 
-        $walletCredit = round($points * self::POINT_VALUE, 2);
+        $walletCredit = $this->asDecimal($points * self::POINT_VALUE);
 
-        $updated = CustomerProfile::where('id', $profile->id)
+        $updated = CustomerProfile::whereKey($profile->id)
             ->where('loyalty_points', '>=', $points)
             ->update([
                 'loyalty_points' => DB::raw("loyalty_points - {$points}"),
@@ -68,19 +68,6 @@ class LoyaltyService
     }
 
     /**
-     * Calculate maximum wallet discount for an order.
-     *
-     * Wallet can cover at most 50% of order total.
-     * Returns the actual discount amount.
-     */
-    public function calculateWalletDiscount(float $walletBalance, float $orderTotal): float
-    {
-        $maxDiscount = round($orderTotal * 0.50, 2);
-
-        return min($walletBalance, $maxDiscount);
-    }
-
-    /**
      * Deduct wallet discount from customer balance after order placed.
      *
      * Only called if customer chose to use wallet at checkout.
@@ -93,14 +80,25 @@ class LoyaltyService
             throw new UnprocessableEntityHttpException(__('loyalty.greater_than_zero'));
         }
 
-        $updated = CustomerProfile::where('id', $profile->id)
+        $amount = $this->asDecimal($amount);
+
+        $updated = CustomerProfile::whereKey($profile->id)
             ->where('wallet_balance', '>=', $amount)
-            ->update([
-                'wallet_balance' => DB::raw("wallet_balance - {$amount}"),
-            ]);
+            ->update(['wallet_balance' => DB::raw("wallet_balance - {$amount}")]);
 
         if ($updated === 0) {
             throw new UnprocessableEntityHttpException(__('loyalty.insufficient_balance'));
         }
+    }
+
+    /**
+     * Render a money amount as a plain fixed-point string.
+     *
+     * Guards against a float being written into SQL in scientific notation,
+     * which the database would not read as the intended value.
+     */
+    private function asDecimal(float $amount): string
+    {
+        return number_format($amount, 2, '.', '');
     }
 }

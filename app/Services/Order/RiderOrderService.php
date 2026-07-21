@@ -5,10 +5,9 @@ namespace App\Services\Order;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
+use App\Events\Order\OrderStatusChanged;
 use App\Jobs\Order\FindRiderJob;
 use App\Models\Order;
-use App\Models\User;
-use App\Notifications\Order\OrderStatusUpdatedNotification;
 use App\Services\Customer\LoyaltyService;
 use App\Services\Payment\RiderPayoutService;
 use App\Services\Payment\VendorPayoutService;
@@ -27,21 +26,22 @@ class RiderOrderService
      */
     public function rejectOrder(string $orderId, string $riderId): Order
     {
-        $order = Order::select(['id', 'rider_id', 'order_status', 'order_number'])
-            ->where('id', $orderId)
-            ->where('rider_id', $riderId)
-            ->firstOrFail();
+        $order = DB::transaction(function () use ($orderId, $riderId) {
+            $order = $this->lockRiderOrder($orderId, $riderId, ['id', 'rider_id', 'order_status', 'order_number']);
 
-        $this->validateStatus($order, OrderStatus::RIDER_ASSIGNED, __('riders.cannot_reject'));
+            $this->validateStatus($order, OrderStatus::RIDER_ASSIGNED, __('riders.cannot_reject'));
 
-        $order->update([
-            'rider_id'                  => null,
-            'order_status'              => OrderStatus::WAITING_RIDER,
-            'rider_assignment_attempts' => 0,
-            'rider_search_started_at'   => now(),
-        ]);
+            $order->update([
+                'rider_id'                  => null,
+                'order_status'              => OrderStatus::WAITING_RIDER,
+                'rider_assignment_attempts' => 0,
+                'rider_search_started_at'   => now(),
+            ]);
 
-        FindRiderJob::dispatch($order->id);
+            return $order;
+        });
+
+        FindRiderJob::dispatchFor($order->id);
 
         return $order;
     }
@@ -53,40 +53,39 @@ class RiderOrderService
      */
     public function pickupOrder(string $orderId, string $riderId): Order
     {
-        $order = Order::select(['id', 'order_number', 'order_status', 'customer_id'])
-            ->where('id', $orderId)
-            ->where('rider_id', $riderId)
-            ->firstOrFail();
+        $order = DB::transaction(function () use ($orderId, $riderId) {
+            $order = $this->lockRiderOrder($orderId, $riderId, ['id', 'order_number', 'order_status', 'customer_id']);
 
-        $this->validateStatus($order, OrderStatus::RIDER_ASSIGNED, __('riders.cannot_pickup'));
+            $this->validateStatus($order, OrderStatus::RIDER_ASSIGNED, __('riders.cannot_pickup'));
 
-        $order->update(['order_status' => OrderStatus::PICKED_UP]);
+            $order->update(['order_status' => OrderStatus::PICKED_UP]);
 
-        User::query()->select('id')->find($order->customer_id)?->notify(new OrderStatusUpdatedNotification($order->id, $order->order_number, $order->order_status, __('notifications.order_picked_up')));
+            return $order;
+        });
+
+        $this->announceStatusChange($order, __('notifications.order_picked_up'));
 
         return $order;
     }
 
     /**
-     * Rider marks the order as delivered to the customer.
+     * Mark an order as delivered.
      *
-     * Mark the order as delivered.
-     * Validates that the order is in the correct status for delivery.
-     * Create payout record for VISA orders automatically for riders and vendors.
-     * Award the customer with their deserved points via the loyaltyService
-     * Load the vendorProfile relationship as it's necessary to complete the vendor payout
-     * Notifies the customer that their order has been delivered after delivery.
+     * Uses a row lock to prevent concurrent deliveries from awarding
+     * loyalty points more than once.
      */
     public function deliverOrder(string $orderId, string $riderId): Order
     {
         $order = DB::transaction(function () use ($orderId, $riderId) {
-            $order = Order::select(['id', 'rider_id', 'store_id', 'order_number', 'order_status', 'customer_id', 'payment_method', 'discount', 'subtotal', 'wallet_discount'])
-                ->with('store.vendorProfile:id,user_id')
-                ->where('id', $orderId)
-                ->where('rider_id', $riderId)
-                ->firstOrFail();
+            $order = $this->lockRiderOrder(
+                $orderId,
+                $riderId,
+                ['id', 'rider_id', 'store_id', 'order_number', 'order_status', 'customer_id', 'payment_method', 'discount', 'subtotal', 'wallet_discount', 'vendor_earnings', 'rider_earnings']
+            );
 
             $this->validateStatus($order, OrderStatus::PICKED_UP, __('riders.cannot_deliver'));
+
+            $order->load('store.vendorProfile:id,user_id');
 
             $order->update([
                 'order_status'      => OrderStatus::DELIVERED,
@@ -99,13 +98,36 @@ class RiderOrderService
             $this->riderPayoutService->createPayoutIfNeeded($order);
             $this->vendorPayoutService->createPayoutIfNeeded($order);
             $this->loyaltyService->awardPoints($order);
-            
+
             return $order;
         });
 
-        User::query()->select('id')->find($order->customer_id)?->notify(new OrderStatusUpdatedNotification($order->id, $order->order_number, $order->order_status, __('notifications.order_delivered')));
+        $this->announceStatusChange($order, __('notifications.order_delivered'));
 
         return $order;
+    }
+
+    /**
+     * Load and lock one of this rider's orders.
+     *
+     * The lock is what makes the subsequent status check safe against a concurrent
+     * request for the same order; it is held until the surrounding transaction commits.
+     */
+    private function lockRiderOrder(string $orderId, string $riderId, array $columns): Order
+    {
+        return Order::select($columns)
+            ->where('id', $orderId)
+            ->where('rider_id', $riderId)
+            ->lockForUpdate()
+            ->firstOrFail();
+    }
+
+    /**
+     * Announce the committed status change; the customer notification listens.
+     */
+    private function announceStatusChange(Order $order, string $message): void
+    {
+        event(OrderStatusChanged::from($order, $message));
     }
 
     /**

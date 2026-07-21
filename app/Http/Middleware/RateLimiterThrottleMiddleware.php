@@ -13,6 +13,14 @@ class RateLimiterThrottleMiddleware
     use ApiResponse;
 
     /**
+     * Paths exempt from throttling because they authenticate per request by
+     * signature rather than by client identity.
+     */
+    private const UNLIMITED_PATHS = [
+        'api/v1/stripe/webhook',
+    ];
+
+    /**
      * Create a new middleware instance.
      *
      * @param RateLimiter $limiter
@@ -55,6 +63,10 @@ class RateLimiterThrottleMiddleware
      */
     protected function resolveLimiter(Request $request): ?string
     {
+        if ($request->is(self::UNLIMITED_PATHS)) {
+            return null;
+        }
+
         $routeName = $request->route()?->getName() ?? '';
 
         if (str_starts_with($routeName, 'admin.') && ! str_starts_with($routeName, 'admin.auth.')) {

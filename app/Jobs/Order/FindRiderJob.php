@@ -9,9 +9,11 @@ use App\Models\User;
 use App\Notifications\Order\AdminOrderEscalationNotification;
 use App\Notifications\Order\RiderAssignedNotification;
 use App\Services\Rider\RiderLocationService;
+use Illuminate\Bus\UniqueLock;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Support\Facades\DB;
 
 class FindRiderJob implements ShouldQueue, ShouldBeUnique
 {
@@ -50,6 +52,20 @@ class FindRiderJob implements ShouldQueue, ShouldBeUnique
     }
 
     /**
+     * Dispatch a new rider search, replacing any active search.
+     *
+     * Releases the existing unique lock so the new search is queued.
+     */
+    public static function dispatchFor(string $orderId): void
+    {
+        $job = new self($orderId);
+
+        app(UniqueLock::class)->release($job);
+
+        self::dispatch($orderId);
+    }
+
+    /**
      * Execute the job.
      * 
      * Try to find and assign the nearest available rider.
@@ -78,6 +94,7 @@ class FindRiderJob implements ShouldQueue, ShouldBeUnique
 
         if ($nearestRider) {
             $this->assignRider($order, $nearestRider);
+
             return;
         }
 
@@ -93,20 +110,41 @@ class FindRiderJob implements ShouldQueue, ShouldBeUnique
     }
 
     /**
-     * Assign the found rider to the order and notify them.
+     * Assign a rider if the order is still waiting.
      *
-     * Updates order status to rider assigned and sends a notification to the rider's account.
+     * Re-checks the status under a row lock to avoid overwriting
+     * another assignment made concurrently.
      */
-    private function assignRider(Order $order, array $riderData): void
+    private function assignRider(Order $order, array $riderData): bool
     {
-        $order->update([
-            'rider_id'     => $riderData['user_id'],
-            'order_status' => OrderStatus::RIDER_ASSIGNED,
-        ]);
+        $assigned = DB::transaction(function () use ($order, $riderData) {
+            $fresh = Order::query()
+                ->select('id', 'order_status')
+                ->whereKey($order->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $fresh || $fresh->order_status !== OrderStatus::WAITING_RIDER) {
+                return false;
+            }
+
+            $fresh->update([
+                'rider_id'     => $riderData['user_id'],
+                'order_status' => OrderStatus::RIDER_ASSIGNED,
+            ]);
+
+            return true;
+        });
+
+        if (! $assigned) {
+            return false;
+        }
 
         $branchSlug = $order->storeBranch->slug;
 
         User::query()->select('id')->find($riderData['user_id'])?->notify(new RiderAssignedNotification($order->id, $branchSlug));
+
+        return true;
     }
 
     /**

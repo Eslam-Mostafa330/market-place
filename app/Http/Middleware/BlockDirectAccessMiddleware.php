@@ -9,13 +9,22 @@ use Symfony\Component\HttpFoundation\Response;
 class BlockDirectAccessMiddleware
 {
     /**
+     * Server-to-server endpoints that bypass this middleware.
+     *
+     * These requests authenticate by other means (e.g. Stripe signature).
+     */
+    private const EXEMPT_PATHS = [
+        'api/v1/stripe/webhook',
+    ];
+
+    /**
      * Lightweight request filter to reduce unsolicited / automated traffic.
      *
      * This middleware is for reduces noise from
      * direct access attempts and automated scanners.
      *
      * Behavior:
-     * - Allows all requests in local environment
+     * - Allows all requests in the local and testing environments
      * - Allows OPTIONS requests (CORS preflight)
      * - Allows requests with Bearer tokens (API / mobile clients)
      * - Allows browser requests from trusted frontend domains
@@ -23,7 +32,11 @@ class BlockDirectAccessMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (app()->environment('local')) {
+        if (app()->environment(['local', 'testing'])) {
+            return $next($request);
+        }
+
+        if ($request->is(self::EXEMPT_PATHS)) {
             return $next($request);
         }
 

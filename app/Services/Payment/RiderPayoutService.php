@@ -71,7 +71,7 @@ class RiderPayoutService
      */
     public function updatePayoutDetails(RiderPayout $riderPayout, array $data): RiderPayout
     {
-        $this->validatePayoutNotCompleted($riderPayout);
+        $this->validatePayoutIsCompleted($riderPayout);
 
         $riderPayout->update([
             ...Arr::only($data, ['payout_method', 'reference', 'notes', 'payout_proof']),
@@ -98,7 +98,7 @@ class RiderPayoutService
      *
      * @throws \Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException
      */
-    private function validatePayoutNotCompleted(RiderPayout $riderPayout): void
+    private function validatePayoutIsCompleted(RiderPayout $riderPayout): void
     {
         if ($riderPayout->status !== PayoutStatus::COMPLETED) {
             throw new UnprocessableEntityHttpException(__('payment.payout.not_completed'));

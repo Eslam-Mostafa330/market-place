@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\TokenAbility;
 use App\Exceptions\Handler;
 use App\Http\Middleware\BlockDirectAccessMiddleware;
 use App\Http\Middleware\EnsureAdminMiddleware;
@@ -26,7 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->as('admin.auth.')
                 ->group(base_path('routes/api/v1/admin/auth.php'));
 
-            Route::prefix('api/v1/admin')->middleware(['api', 'auth:sanctum', 'isAdmin'])
+            Route::prefix('api/v1/admin')->middleware(['api', 'auth:sanctum', 'ability:'.TokenAbility::ACCESS_API->value, 'isAdmin'])
                 ->as('admin.')
                 ->group(base_path('routes/api/v1/admin/admin.php'));
 
@@ -34,7 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->as('vendor.auth.')
                 ->group(base_path('routes/api/v1/vendor/auth.php'));
 
-            Route::prefix('api/v1/vendor')->middleware(['api', 'auth:sanctum', 'isVendor'])
+            Route::prefix('api/v1/vendor')->middleware(['api', 'auth:sanctum', 'ability:'.TokenAbility::ACCESS_API->value, 'isVendor'])
                 ->as('vendor.')
                 ->group(base_path('routes/api/v1/vendor/vendor.php'));
 
@@ -42,7 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->as('rider.auth.')
                 ->group(base_path('routes/api/v1/rider/auth.php'));
 
-            Route::prefix('api/v1/rider')->middleware(['api', 'auth:sanctum', 'isRider'])
+            Route::prefix('api/v1/rider')->middleware(['api', 'auth:sanctum', 'ability:'.TokenAbility::ACCESS_API->value, 'isRider'])
                 ->as('rider.')
                 ->group(base_path('routes/api/v1/rider/rider.php'));
 
@@ -50,7 +51,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->as('customer.auth.')
                 ->group(base_path('routes/api/v1/customer/auth.php'));
 
-            Route::prefix('api/v1/customer')->middleware(['api', 'auth:sanctum', 'isCustomer'])
+            Route::prefix('api/v1/customer')->middleware(['api', 'auth:sanctum', 'ability:'.TokenAbility::ACCESS_API->value, 'isCustomer'])
                 ->as('customer.')
                 ->group(base_path('routes/api/v1/customer/customer.php'));
 

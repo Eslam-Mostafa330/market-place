@@ -13,9 +13,13 @@ enum CancellationReason: int
     case RIDER_TOO_FAR = 7;
     case LONG_WAITING_TIME = 8;
     case PRICE_TOO_HIGH = 9;
+    case PAYMENT_NOT_COMPLETED = 10;
 
     /**
-     * Return non-cancellable statuses as integer values
+     * Reasons a customer is allowed to select when cancelling their own order.
+     *
+     * Excludes reasons that only the platform can assert, such as an abandoned
+     * payment or a rider-side problem.
      */
     public static function customerCancellationCases(): array
     {
@@ -23,7 +27,6 @@ enum CancellationReason: int
             self::PERSONAL_EMERGENCY,
             self::OTHER,
             self::CHANGED_MIND,
-            self::RIDER_TOO_FAR,
             self::RIDER_TOO_FAR,
             self::LONG_WAITING_TIME,
             self::PRICE_TOO_HIGH,

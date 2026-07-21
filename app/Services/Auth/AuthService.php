@@ -25,7 +25,7 @@ class AuthService
      */
     public function attemptLogin(array $credentials, ?UserRole $expectedRole = null): ?User
     {
-        if (! Auth::attempt($credentials)) return null;
+        if (! Auth::once($credentials)) return null;
 
         $user = Auth::user();
 

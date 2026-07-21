@@ -2,11 +2,23 @@
 
 namespace App\Services\Payment;
 
+use App\Enums\PaymentStatus;
 use App\Models\Order;
 use Stripe\StripeClient;
 
 class PaymentService
 {
+    /**
+     * PaymentIntent statuses that may still be cancelled at the gateway.
+     */
+    private const CANCELABLE_INTENT_STATUSES = [
+        'requires_payment_method',
+        'requires_capture',
+        'requires_confirmation',
+        'requires_action',
+        'processing',
+    ];
+
     private StripeClient $stripe;
 
     public function __construct()
@@ -55,5 +67,47 @@ class PaymentService
             'client_secret'     => $intent->client_secret,
             'payment_intent_id' => $intent->id,
         ];
+    }
+
+    /**
+     * Reverse an order's payment at the gateway.
+     *
+     * Refunds captured payments or cancels pending payment intents.
+     * Safe to retry using idempotency keys.
+     *
+     * @throws \Stripe\Exception\ApiErrorException
+     */
+    public function reversePayment(Order $order): bool
+    {
+        if (! $order->payment_intent_id) {
+            return false;
+        }
+
+        if ($order->payment_status === PaymentStatus::PAID) {
+            $this->stripe->refunds->create(
+                [
+                    'payment_intent' => $order->payment_intent_id,
+                    'reason'         => 'requested_by_customer',
+                    'metadata'       => ['order_id' => $order->id, 'order_number' => $order->order_number],
+                ],
+                ['idempotency_key' => 're_' . $order->id]
+            );
+
+            return true;
+        }
+
+        $intent = $this->stripe->paymentIntents->retrieve($order->payment_intent_id);
+
+        if (! in_array($intent->status, self::CANCELABLE_INTENT_STATUSES, true)) {
+            return false;
+        }
+
+        $this->stripe->paymentIntents->cancel(
+            $order->payment_intent_id,
+            [],
+            ['idempotency_key' => 'cx_' . $order->id]
+        );
+
+        return true;
     }
 }

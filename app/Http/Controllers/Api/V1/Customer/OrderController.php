@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Customer;
 
+use App\Enums\CancellationReason;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Controllers\Api\V1\Customer\Concerns\CustomerOrderAuthorization;
 use App\Http\Requests\Customer\Order\CancelOrderRequest;
@@ -91,7 +92,14 @@ class OrderController extends BaseApiController
     public function cancel(CancelOrderRequest $request, string $orderId)
     {
         $data = $request->validated();
-        $order = $this->customerOrderService->cancelOrder($orderId, $data['reason'], $data['note'], auth()->id());
+
+        $order = $this->customerOrderService->cancelOrder(
+            orderId: $orderId,
+            reason: CancellationReason::from((int) $data['reason']),
+            customerId: auth()->id(),
+            note: $data['note'] ?? null,
+        );
+
         return $this->apiResponse(new OrderCancellationResource($order));
     }
 }

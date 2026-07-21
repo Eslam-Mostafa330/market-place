@@ -2,52 +2,44 @@
 
 namespace App\Http\Controllers\Api\V1\Public;
 
-use App\Enums\PaymentStatus;
 use App\Http\Controllers\Api\BaseApiController;
-use App\Models\Order;
+use App\Services\Payment\StripeWebhookService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Stripe\Exception\SignatureVerificationException;
 use Stripe\Webhook;
 
 class StripeWebhookController extends BaseApiController
 {
-    /**
-     * Receive and process Stripe webhook events after validating the signature,
-     * then dispatch them to update order payment status accordingly.
-     */
-    public function handle(Request $request)
-    {
-        $event = Webhook::constructEvent(
-            $request->getContent(),
-            $request->header('Stripe-Signature'),
-            config('services.stripe.webhook_secret')
-        );
+    public function __construct(private readonly StripeWebhookService $webhookService) {}
 
-        match ($event->type) {
-            'payment_intent.succeeded' => $this->handlePaymentSucceeded($event->data->object),
-            'payment_intent.payment_failed' => $this->handlePaymentFailed($event->data->object),
-            default => null,
-        };
+    /**
+     * Receive and process Stripe webhook events.
+     *
+     * A signature failure returns 400 rather than bubbling into a 500. Stripe treats
+     * 5xx as retryable and would otherwise redeliver a forged or malformed payload
+     * on a backoff schedule for days.
+     *
+     * Everything past verification is delegated to StripeWebhookService, which
+     * enforces exactly-once handling and the order state guards.
+     */
+    public function handle(Request $request): JsonResponse
+    {
+        try {
+            $event = Webhook::constructEvent(
+                $request->getContent(),
+                $request->header('Stripe-Signature') ?? '',
+                config('services.stripe.webhook_secret')
+            );
+        } catch (SignatureVerificationException|\UnexpectedValueException $exception) {
+            Log::warning('Rejected Stripe webhook.', ['message' => $exception->getMessage()]);
+
+            return response()->json(['message' => 'Invalid payload.'], 400);
+        }
+
+        $this->webhookService->process($event);
 
         return $this->apiResponse(null, 'Webhook received.');
-    }
-
-    /**
-     * Update the order payment status to paid when Stripe confirms a successful payment intent.
-     */
-    private function handlePaymentSucceeded(object $paymentIntent): void
-    {
-        Order::where('payment_intent_id', $paymentIntent->id)
-            ->first()
-            ?->update(['payment_status' => PaymentStatus::PAID]);
-    }
-
-    /**
-     * Update the order payment status to failed when Stripe reports a failed payment intent.
-     */
-    private function handlePaymentFailed(object $paymentIntent): void
-    {
-        Order::where('payment_intent_id', $paymentIntent->id)
-            ->first()
-            ?->update(['payment_status' => PaymentStatus::FAILED]);
     }
 }

@@ -7,12 +7,13 @@ use App\Enums\CancellationReason;
 use App\Jobs\Order\FindRiderJob;
 use App\Models\Order;
 use App\Models\User;
-use App\Notifications\Order\OrderCancelledNotification;
 use App\Notifications\Order\RiderAssignedNotification;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class AdminOrderService
 {
+    public function __construct(private readonly CancelOrderService $cancelOrderService) {}
+
     /**
      * Manually assign a specific rider to an order.
      *
@@ -50,29 +51,19 @@ class AdminOrderService
      * Cancel an order.
      *
      * Admin can cancel orders that are not already cancelled or delivered.
-     * Ensure the order is not in a not canceled or delivered status before allowing cancellation.
-     * Notify the customer about the cancellation with the reason and note for better transparency and communication.
+     *
+     * Compensation (stock, coupon, wallet, gateway) and the customer notification
+     * are owned by CancelOrderService so the admin and customer paths can never
+     * drift apart on what cancelling actually reverses.
      */
     public function cancelOrder(string $orderId, ?string $note = null): Order
     {
-        $order = Order::select(['id', 'order_number', 'order_status', 'customer_id', 'cancelled_by', 'cancellation_reason', 'cancellation_note'])
-            ->with('customer:id')
-            ->findOrFail($orderId);
-
-        $nonCancellableStatuses = OrderStatus::nonCancellableStatuses();
-
-        $this->ensureOrderStatus($order, $nonCancellableStatuses, __('orders.cannot_cancel'), false);
-
-        $order->update([
-            'order_status'        => OrderStatus::CANCELLED,
-            'cancelled_by'        => 'admin',
-            'cancellation_reason' => CancellationReason::OTHER,
-            'cancellation_note'   => $note,
-        ]);
-
-        $order->customer?->notify(new OrderCancelledNotification(orderId: $order->id, orderNumber: $order->order_number, cancelledBy: $order->cancelled_by, cancellationNote: $order->cancellation_note));
-
-        return $order;
+        return $this->cancelOrderService->cancel(
+            orderId: $orderId,
+            reason: CancellationReason::OTHER,
+            note: $note,
+            cancelledBy: 'admin',
+        );
     }
 
     /**
@@ -94,7 +85,7 @@ class AdminOrderService
             'rider_search_started_at'   => now(),
         ]);
 
-        FindRiderJob::dispatch($order->id);
+        FindRiderJob::dispatchFor($order->id);
 
         return $order;
     }

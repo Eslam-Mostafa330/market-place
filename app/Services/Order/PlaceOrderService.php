@@ -6,25 +6,24 @@ use App\Enums\DefineStatus;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
-use App\Jobs\CustomerPreference\RefreshCustomerPreferences;
+use App\Events\Order\OrderPlaced;
 use App\Models\Coupon;
 use App\Models\CustomerProfile;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\StoreBranch;
-use App\Models\User;
 use App\Models\UserAddress;
-use App\Notifications\Order\NewOrderNotification;
 use App\Services\Customer\LoyaltyService;
 use App\Services\Payment\PaymentService;
+use App\Services\Product\ProductStockService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class PlaceOrderService
 {
-    public function __construct(private readonly OrderPricingCalculatorService $calculator, private readonly PaymentService $paymentService, private readonly LoyaltyService $loyaltyService) {}
+    public function __construct(private readonly OrderPricingCalculatorService $calculator, private readonly PaymentService $paymentService, private readonly LoyaltyService $loyaltyService, private readonly OrderNumberGenerator $orderNumberGenerator, private readonly ProductStockService $stockService) {}
 
     /**
      * Handle the complete order placement workflow including optional payment processing.
@@ -43,27 +42,35 @@ class PlaceOrderService
      */
     public function handle(array $data): array
     {
-        ['order' => $order, 'vendorUser' => $vendorUser] = DB::transaction(function () use ($data) {
+        // Allocated ahead of the transaction so the sequence lock is never held
+        // for the length of the order transaction.
+        $orderNumber = $this->orderNumberGenerator->generate();
+
+        $order = DB::transaction(function () use ($data, $orderNumber) {
             ['branch' => $branch, 'address' => $address, 'coupon' => $coupon] = $this->validateOrder($data);
 
             $items = $this->resolveItems($data['items'], $branch);
+
+            $this->ensureCouponMinimumOrder($coupon, $items);
 
             ['discount' => $walletDiscount, 'profile' => $walletProfile] = $this->resolveWalletDiscount($data);
 
             $pricing = $this->calculator->calculate($items, $branch, (float) $branch->store->commission_rate, $coupon, $walletDiscount);
 
-            ['order' => $order, 'vendorUser' => $vendorUser] = $this->persistOrder($data, $branch, $address, $coupon, $items, $pricing);
+            $order = $this->persistOrder($data, $branch, $address, $coupon, $items, $pricing, $orderNumber);
 
             if ($walletProfile && $pricing['wallet_discount'] > 0) {
                 $this->loyaltyService->deductWalletBalance($walletProfile, $pricing['wallet_discount']);
             }
 
-            return ['order' => $order, 'vendorUser' => $vendorUser];
+            return $order;
         });
 
-        RefreshCustomerPreferences::throttledDispatch($order->customer_id, 'order');
-
-        $vendorUser?->notify(new NewOrderNotification(orderId: $order->id, orderNumber: $order->order_number, total: $order->total, itemsCount: $order->items->count(), branchName: $order->storeBranch->name, storeName: $order->store->name));
+        // Consequences of the order existing — notifying the vendor, refreshing
+        // recommendation inputs — are handled by listeners. They run on the queue
+        // after commit, so a failing notification can no longer turn a successful
+        // placement into a 500 and invite a duplicate retry from the client.
+        event(OrderPlaced::from($order));
 
         return ['order' => $order, 'payment' => $this->handlePayment($order)];
     }
@@ -107,7 +114,7 @@ class PlaceOrderService
      */
     private function validateCoupon(string $code, StoreBranch $branch): Coupon
     {
-        $coupon = Coupon::select('id', 'store_id', 'status', 'starts_at', 'expires_at', 'usage_limit_per_user', 'coupon_type', 'value')
+        $coupon = Coupon::select('id', 'store_id', 'status', 'starts_at', 'expires_at', 'usage_limit_per_user', 'coupon_type', 'value', 'minimum_order', 'maximum_discount')
             ->where('code', $code)
             ->lockForUpdate()
             ->firstOrFail();
@@ -129,7 +136,10 @@ class PlaceOrderService
         }
 
         if ($coupon->usage_limit_per_user) {
-            $usedByCustomer = Order::where('customer_id', auth()->id())->where('coupon_id', $coupon->id)->count();
+            $usedByCustomer = Order::where('customer_id', auth()->id())
+                ->where('coupon_id', $coupon->id)
+                ->whereNot('order_status', OrderStatus::CANCELLED)
+                ->count();
 
             if ($usedByCustomer >= $coupon->usage_limit_per_user) {
                 throw new UnprocessableEntityHttpException(__('orders.coupon_usage_reached'));
@@ -140,44 +150,103 @@ class PlaceOrderService
     }
 
     /**
+     * Enforce the coupon's minimum order value against the resolved items.
+     *
+     * Checked after items are resolved because the threshold applies to the
+     * item subtotal, which is not known while the coupon is first validated.
+     *
+     * @param Coupon|null $coupon Applied coupon (if any)
+     * @param array       $items  Resolved order items
+     *
+     * @throws \Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException
+     */
+    private function ensureCouponMinimumOrder(?Coupon $coupon, array $items): void
+    {
+        if (! $coupon || ! $coupon->minimum_order) {
+            return;
+        }
+
+        $subtotal = round(array_sum(array_column($items, 'subtotal')), 2);
+
+        if ($subtotal < (float) $coupon->minimum_order) {
+            throw new UnprocessableEntityHttpException(__('orders.coupon_minimum_order', ['amount' => number_format((float) $coupon->minimum_order, 2)]));
+        }
+    }
+
+    /**
      * Resolve and prepare order items with row-level locking.
+     *
+     * Requested lines are first merged by product so that a cart repeating the
+     * same product across multiple lines is validated and charged against a
+     * single combined quantity. Without merging, each line would be stock
+     * checked in isolation (allowing the total to exceed available stock) and
+     * the bulk decrement would only apply the first matching CASE branch.
      *
      * Retrieves all requested products and locks their rows
      * using a "FOR UPDATE" query to prevent concurrent modifications.
      * This ensures stock consistency and prevents overselling when multiple
      * customers attempt to purchase the same product simultaneously.
-     * 
+     * Rows are locked in a deterministic order to avoid deadlocks between
+     * concurrent orders whose carts overlap.
+     *
      * @param array       $rawItems List of raw items (product_id, quantity)
      * @param StoreBranch $branch   Store branch associated with the order
      *
      * @throws \Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException
-     * 
+     *
      * @return array Resolved and validated order items
      */
     private function resolveItems(array $rawItems, StoreBranch $branch): array
     {
+        $quantities = $this->mergeQuantitiesByProduct($rawItems);
+
         $products = Product::select('id', 'name', 'store_id', 'status', 'quantity', 'price', 'sale_price')
-            ->whereIn('id', array_column($rawItems, 'product_id'))
+            ->whereIn('id', array_keys($quantities))
+            ->orderBy('id')
             ->lockForUpdate()
             ->get()
             ->keyBy('id');
 
-        return array_map(function ($raw) use ($products, $branch) {
-            $product = $products->get($raw['product_id']) ?? throw new UnprocessableEntityHttpException('One or more products were not found.');
+        $items = [];
 
-            $this->validateProduct($product, $raw['quantity'], $branch);
+        foreach ($quantities as $productId => $quantity) {
+            $product = $products->get($productId) ?? throw new UnprocessableEntityHttpException(__('orders.product_not_found'));
+
+            $this->validateProduct($product, $quantity, $branch);
 
             $unitPrice = (float) ($product->sale_price ?? $product->price);
 
-            return [
+            $items[] = [
                 'product_id'   => $product->id,
                 'product_name' => $product->name,
                 'product'      => $product,
-                'quantity'     => $raw['quantity'],
+                'quantity'     => $quantity,
                 'unit_price'   => $unitPrice,
-                'subtotal'     => round($unitPrice * $raw['quantity'], 2),
+                'subtotal'     => round($unitPrice * $quantity, 2),
             ];
-        }, $rawItems);
+        }
+
+        return $items;
+    }
+
+    /**
+     * Merge requested lines into a single total quantity per product.
+     *
+     * @param array $rawItems List of raw items (product_id, quantity)
+     *
+     * @return array<string, int> Map of product_id => combined quantity
+     */
+    private function mergeQuantitiesByProduct(array $rawItems): array
+    {
+        $quantities = [];
+
+        foreach ($rawItems as $raw) {
+            $productId = $raw['product_id'];
+
+            $quantities[$productId] = ($quantities[$productId] ?? 0) + (int) $raw['quantity'];
+        }
+
+        return $quantities;
     }
 
     /**
@@ -218,15 +287,14 @@ class PlaceOrderService
      * @param StoreBranch  $branch   Store branch associated with the order
      * @param UserAddress  $address  Selected delivery address
      * @param Coupon|null  $coupon   Applied coupon (if any)
-     * @param array        $items    Resolved order items
-     * @param array        $pricing  Calculated pricing breakdown
-     * 
-     * @return array{order: Order, vendorUser: User|null}
+     * @param array        $items       Resolved order items
+     * @param array        $pricing     Calculated pricing breakdown
+     * @param string       $orderNumber Pre-allocated order number
      */
-    private function persistOrder(array $data, StoreBranch $branch, UserAddress $address, ?Coupon $coupon, array $items, array $pricing): array
+    private function persistOrder(array $data, StoreBranch $branch, UserAddress $address, ?Coupon $coupon, array $items, array $pricing, string $orderNumber): Order
     {
         $order = Order::create(
-            $this->buildOrderAttributes($data, $branch, $address, $coupon, $pricing)
+            $this->buildOrderAttributes($data, $branch, $address, $coupon, $pricing, $orderNumber)
         );
 
         $order->setRelation('storeBranch', $branch);
@@ -236,7 +304,7 @@ class PlaceOrderService
 
         OrderItem::insert($itemRows);
 
-        $this->decrementStock($items);
+        $this->stockService->decrement(array_column($items, 'quantity', 'product_id'));
 
         if ($coupon) {
             Coupon::whereKey($coupon->id)->update(['used_count' => DB::raw('used_count + 1')]);
@@ -247,12 +315,7 @@ class PlaceOrderService
             collect($itemRows)->map(fn ($row) => (new OrderItem())->forceFill($row))
         );
 
-        $vendorUser = User::select('users.id')
-            ->join('vendor_profiles', 'vendor_profiles.user_id', '=', 'users.id')
-            ->where('vendor_profiles.id', $branch->store->vendor_profile_id)
-            ->first();
-
-        return ['order' => $order, 'vendorUser' => $vendorUser];
+        return $order;
     }
 
     /**
@@ -271,18 +334,19 @@ class PlaceOrderService
      * @param StoreBranch  $branch   Store branch associated with the order
      * @param UserAddress  $address  Selected delivery address
      * @param Coupon|null  $coupon   Applied coupon (if any)
-     * @param array        $pricing  Calculated pricing breakdown
+     * @param array        $pricing     Calculated pricing breakdown
+     * @param string       $orderNumber Pre-allocated order number
      *
      * @return array Attributes ready for order insertion
      */
-    private function buildOrderAttributes(array $data, StoreBranch $branch, UserAddress $address, ?Coupon $coupon, array $pricing):array
+    private function buildOrderAttributes(array $data, StoreBranch $branch, UserAddress $address, ?Coupon $coupon, array $pricing, string $orderNumber):array
     {
         return [
             'customer_id'           => auth()->id(),
             'store_id'              => $branch->store_id,
             'store_branch_id'       => $branch->id,
             'coupon_id'             => $coupon?->id,
-            'order_number'          => $this->generateOrderNumber(),
+            'order_number'          => $orderNumber,
             'notes'                 => $data['notes'] ?? null,
             'payment_method'        => $data['payment_method'],
             'order_status'          => OrderStatus::PENDING,
@@ -336,26 +400,6 @@ class PlaceOrderService
     }
 
     /**
-     * Decrements stock quantities for multiple products.
-     *
-     * This method performs a bulk update using a SQL CASE statement, allowing each
-     * product to be updated with a different decrement value in a single query.
-     *
-     * @param array $items
-     * @return void
-    */
-    private function decrementStock(array $items): void
-    {
-        $ids = collect($items)->pluck('product_id');
-
-        $cases = collect($items)
-            ->map(fn ($item) => "WHEN id = '{$item['product_id']}' THEN quantity - {$item['quantity']}")
-            ->implode(' ');
-
-        Product::whereIn('id', $ids)->update(['quantity' => DB::raw("CASE {$cases} END")]);
-    }
-
-    /**
      * Process payment for the order based on the selected payment method.
      *
      * Returns payment data when using online payment (VISA),
@@ -377,7 +421,8 @@ class PlaceOrderService
     /**
      * Calculate wallet discount if customer chose to use wallet balance.
      *
-     * Returns 0 if use_wallet is false or customer has no balance.
+     * Returns 0 if use_wallet is false, the customer has no profile row, or the
+     * balance is empty. The caller caps the returned amount against the order.
      */
     private function resolveWalletDiscount(array $data): array
     {
@@ -390,29 +435,11 @@ class PlaceOrderService
             ->lockForUpdate()
             ->first();
 
+        if (! $profile || $profile->wallet_balance <= 0) {
+            return ['discount' => 0.0, 'profile' => null];
+        }
+
         return ['discount' => (float) $profile->wallet_balance, 'profile' => $profile];
     }
 
-    /**
-     * Generate a daily order number based on the current date and order count.
-     *
-     * Format: ORD-YYYYMMDD-00001
-     *
-     * The sequence is derived by counting today's existing orders and adding one.
-     * This provides a simple incremental number per day, but it is not a true
-     * database sequence and may be prone to race conditions under high concurrency
-     * unless used within a transaction with proper locking.
-     *
-     * @return string Generated order number
-     */
-    private function generateOrderNumber(): string
-    {
-        $today = today()->toDateString();
-
-        $sequence = Order::whereDate('created_at', $today)
-            ->lockForUpdate()
-            ->count() + 1;
-
-        return 'ORD-' . now()->format('Ymd') . '-' . str_pad($sequence, 5, '0', STR_PAD_LEFT);
-    }
 }

@@ -2,55 +2,31 @@
 
 namespace App\Services\Order;
 
-use App\Enums\OrderStatus;
+use App\Enums\CancellationReason;
 use App\Models\Order;
-use App\Notifications\Order\OrderCancelledNotification;
-use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class CustomerOrderService
 {
+    public function __construct(private readonly CancelOrderService $cancelOrderService) {}
+
     /**
      * Customer cancels their own order.
      *
-     * Allowed from any status before delivered.
-     * Ensure the order is in a cancellable status before allowing cancellation.
-     * Ensure the order belongs to the authenticated customer.
-     * Notify the customer about the cancellation and reason for better transparency and communication.
-     */
-    public function cancelOrder(string $orderId, int $reason, ?string $note = null, string $customerId): Order
-    {
-        $order = Order::select(['id', 'order_number', 'order_status', 'customer_id', 'cancelled_by'])
-            ->where('id', $orderId)
-            ->where('customer_id', $customerId)
-            ->firstOrFail();
-
-        $this->validateCancellable($order);
-
-        $order->update([
-            'order_status'        => OrderStatus::CANCELLED,
-            'cancelled_by'        => 'customer',
-            'cancellation_reason' => $reason,
-            'cancellation_note'   => $note,
-        ]);
-
-        auth()->user()?->notify(new OrderCancelledNotification(orderId: $order->id, orderNumber: $order->order_number, cancelledBy: $order->cancelled_by, cancellationNote: $order->cancellation_note));
-
-        return $order;
-    }
-
-    /**
-     * Verify the order is in a cancellable status.
+     * Allowed from any status before delivered. Scoping by customer id ensures a
+     * customer can only cancel their own order.
      *
-     * Cannot cancel what is already delivered or already cancelled.
-     *
-     * @throws \Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException
+     * Compensation (stock, coupon, wallet, gateway) and the customer notification
+     * are owned by CancelOrderService so the customer and admin paths can never
+     * drift apart on what cancelling actually reverses.
      */
-    private function validateCancellable(Order $order): void
+    public function cancelOrder(string $orderId, CancellationReason $reason, string $customerId, ?string $note = null): Order
     {
-        $nonCancellableStatuses = OrderStatus::nonCancellableStatuses();
-
-        if (in_array($order->order_status, $nonCancellableStatuses)) {
-            throw new UnprocessableEntityHttpException(__('orders.cannot_cancel'));
-        }
+        return $this->cancelOrderService->cancel(
+            orderId: $orderId,
+            reason: $reason,
+            note: $note,
+            cancelledBy: 'customer',
+            customerId: $customerId,
+        );
     }
 }
