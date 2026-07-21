@@ -39,6 +39,10 @@ A comprehensive RESTful API for a multi-vendor food/product delivery marketplace
 - [Order Lifecycle](#order-lifecycle)
 - [Performance Optimizations](#performance-optimizations)
 - [Scheduled Commands](#scheduled-commands)
+- [Testing](#testing)
+  - [Test Database Setup](#test-database-setup)
+  - [Running the Suite](#running-the-suite)
+  - [How the Tests Are Organised](#how-the-tests-are-organised)
 - [Development Tools](#development-tools)
 - [Testing Rider Location (Tinker)](#testing-rider-location-tinker)
 
@@ -67,6 +71,19 @@ States and types across the system are strongly typed via PHP enums: `OrderStatu
 
 Enum values are stored as **`tinyInt`** in the database rather than strings — a deliberate performance choice that reduces storage size, speeds up indexed lookups, and keeps the database layer lean while the application layer handles the human-readable mapping.
 
+### Domain Events for Side Effects
+Anything that should happen *because* an order changed — notifying the vendor, refreshing recommendation inputs, reversing a payment at the gateway — is raised as a domain event (`OrderPlaced`, `OrderCancelled`, `OrderStatusChanged`) and handled by queued listeners in `app/Listeners/Order`. Adding a new consequence of placing an order no longer means editing `PlaceOrderService`.
+
+Two rules keep this safe:
+
+- Listeners are marked **`$afterCommit = true`**, so a transaction that rolls back never announces work that did not happen.
+- Events carry **identifiers and point-in-time values, not models**. A queued listener holding a model re-reads it when it runs, which would let an order that advanced in the meantime be announced with a status contradicting its own message. `OrderStatusChanged` therefore captures the status at the moment of the transition.
+
+What stays *inside* the transaction is anything that must be atomic with the state change: stock, coupon usage, wallet balance, payouts, and loyalty points. Those are invariants, not side effects.
+
+### Compensating Cancellation
+Placing an order performs five mutations — it creates the order, decrements stock, consumes a coupon, debits wallet balance, and (for card orders) opens a payment intent. `CancelOrderService` is the single place that knows that list and reverses all of it under a row lock, so the customer and admin cancellation paths cannot drift apart on what cancelling actually undoes. The gateway reversal is handed to a retryable, idempotent job rather than being attempted inline, since it is a network call that must not hold database locks.
+
 ### Standardized API Responses
 A global response wrapper and API exception to ensures every endpoint returns a consistent JSON envelope — success flag, HTTP status, message, and data — simplifying frontend integration.
 
@@ -94,6 +111,7 @@ Modified artisan stubs ensure every generated model, controller, and migration f
 | Activity Logging | `spatie/laravel-activitylog` |
 | Dev Debugging | Laravel Telescope |
 | Queue | Laravel Queues (multiple named queues) |
+| Testing | Pest 4 |
 
 ---
 
@@ -381,7 +399,7 @@ The project uses **named queues** for priority and isolation. Start all workers 
 
 ```bash
 php artisan queue:work \
-  --queue=rider-matching,rider-assigned,new-order,admin-order-escalation,order-status-change,cancel-order,default,refresh-user-preference
+  --queue=rider-matching,payments,rider-assigned,new-order,admin-order-escalation,order-status-change,cancel-order,default,refresh-user-preference
 ```
 
 > **Queue priority**: `rider-matching` is first — rider assignment jobs are processed before all other notifications, ensuring minimal order delays.
@@ -419,7 +437,7 @@ The OTP email is dispatched via a queued job — the worker must be running or t
 
 ```bash
 php artisan queue:work \
-  --queue=rider-matching,rider-assigned,new-order,admin-order-escalation,order-status-change,cancel-order,default,refresh-user-preference
+  --queue=rider-matching,payments,rider-assigned,new-order,admin-order-escalation,order-status-change,cancel-order,default,refresh-user-preference
 ```
 
 ### 3) Login — Step 1: Submit Credentials
@@ -752,8 +770,59 @@ Rider picks up → delivers
 | `DeleteExpiredTokens` | Daily at **2:00 AM** | Removes expired personal access tokens from the database |
 | `DeleteExpiredTwoFactorData` | Daily at **1:00 AM** | Deletes unused expired OTP codes and stale trusted device records |
 | `MarkStaleRidersUnavailable` | Every **10 minutes** | Marks riders as unavailable if they have not sent a location update in the last 10 minutes — ensures stale GPS entries don't interfere with rider assignment |
+| `CancelAbandonedOrders` | Every **5 minutes** | Cancels card orders whose payment was never completed after 30 minutes, releasing the stock, coupon and wallet balance they were holding |
 | Activity log cleanup | Daily at **12:00 AM** | Prunes `spatie/laravel-activitylog` records older than **90 days** |
 | `RefreshCustomerPreferences` | Daily at **03:00 AM** (full rebuild) | Rebuilds all customer preference scores from scratch |
+
+---
+
+## Testing
+
+The suite is written with **[Pest](https://pestphp.com/)** and runs against a real MySQL database.
+
+### Test Database Setup
+
+Create a dedicated schema once. It is wiped and re-migrated by the suite, so never point this at your development database:
+
+```bash
+mysql -u root -e "CREATE DATABASE marketplace_platform_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+```
+
+`phpunit.xml` already directs tests at it:
+
+```xml
+<env name="DB_CONNECTION" value="mysql"/>
+<env name="DB_DATABASE" value="marketplace_platform_test"/>
+```
+
+Connection host, user and password are inherited from your `.env`. Everything else is overridden for tests — cache and session run in memory, the queue runs synchronously, and mail is captured instead of sent.
+
+### Running the Suite
+
+```bash
+php artisan test                          # everything
+php artisan test --filter=CancelOrder     # one file or one test name
+php artisan test tests/Feature/Auth       # one directory
+php artisan test --parallel               # across CPU cores
+```
+
+The first run migrates the test schema automatically. Each test runs inside a transaction that is rolled back afterwards, so tests never leak state into one another.
+
+### How the Tests Are Organised
+
+| Path | Covers |
+|------|--------|
+| `tests/Feature/Order/PlaceOrderTest.php` | Pricing, stock, coupon and wallet rules at placement |
+| `tests/Feature/Order/CancelOrderTest.php` | Cancellation compensation, as a place-then-cancel round trip |
+| `tests/Feature/Order/OrderLifecycleTest.php` | The whole flow from HTTP placement through to delivery and payouts |
+| `tests/Feature/Order/OrderListenersTest.php` | Each domain-event listener in isolation |
+| `tests/Feature/Auth/` | Registration, login, tokens, email verification, password reset, 2FA |
+| `tests/Feature/Payment/StripeWebhookTest.php` | Webhook replay, out-of-order events, amount mismatch, refund-on-cancelled |
+| `tests/Feature/Payment/StripeWebhookEndpointTest.php` | Signature verification over the real HTTP endpoint |
+| `tests/Feature/Payment/WebhookReachabilityTest.php` | That the webhook survives the production request filters |
+| `tests/Unit/OrderStatusTest.php` | The order status transition graph |
+
+> Stripe tests build `Stripe\Event` objects with `Event::constructFrom()` and sign payloads by hand, so the whole payment path is covered without a network call or a Stripe key.
 
 ---
 
