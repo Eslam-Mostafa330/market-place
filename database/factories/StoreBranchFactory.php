@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\DefineStatus;
+use App\Models\Store;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -13,9 +14,12 @@ class StoreBranchFactory extends Factory
 {
     public function definition(): array
     {
+        $name = 'Branch ' . fake()->unique()->numerify('####');
+
         return [
-            'name' => 'Branch',
-            'slug' => Str::slug('branch'),
+            'store_id' => Store::factory(),
+            'name' => $name,
+            'slug' => Str::slug($name),
             'address' => $this->faker->address(),
             'city' => 'Cairo',
             'area' => null,
@@ -26,5 +30,16 @@ class StoreBranchFactory extends Factory
             'longitude' => $this->faker->longitude(),
             'status' => fake()->randomElement(DefineStatus::values()),
         ];
+    }
+
+    /**
+     * An active branch with an exact delivery fee.
+     */
+    public function active(float $deliveryFee): static
+    {
+        return $this->state(fn () => [
+            'status'       => DefineStatus::ACTIVE,
+            'delivery_fee' => $deliveryFee,
+        ]);
     }
 }

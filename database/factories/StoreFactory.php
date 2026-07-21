@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\BusinessCategory;
+use App\Models\VendorProfile;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -13,19 +14,28 @@ class StoreFactory extends Factory
 {
     public function definition(): array
     {
-        $category = BusinessCategory::inRandomOrder()->first();
+        $category = BusinessCategory::inRandomOrder()->first() ?? BusinessCategory::factory()->create();
 
-        [$name, $slug] = $this->generateStoreName($category?->name);
+        [$name, $slug] = $this->generateStoreName($category->name);
 
         return [
             'name'                 => $name,
             'slug'                 => $slug,
-            'description'          => $category?->description ?? 'Store description',
+            'description'          => $category->description ?? 'Store description',
             'commission_rate'      => fake()->randomFloat(2, 5, 20),
             'logo'                 => 'stores/logos/' . $slug . '.jpg',
             'image'                => 'stores/images/' . $slug . '.png',
-            'business_category_id' => $category?->id,
+            'business_category_id' => $category->id,
+            'vendor_profile_id'    => VendorProfile::factory(),
         ];
+    }
+
+    /**
+     * A store with an exact commission rate.
+     */
+    public function commission(float $rate): static
+    {
+        return $this->state(fn () => ['commission_rate' => $rate]);
     }
 
     private function generateStoreName(?string $category): array

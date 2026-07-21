@@ -3,6 +3,8 @@
 namespace Database\Factories;
 
 use App\Enums\DefineStatus;
+use App\Models\ProductCategory;
+use App\Models\Store;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -13,9 +15,13 @@ class ProductFactory extends Factory
 {
     public function definition(): array
     {
+        $name = 'Product ' . fake()->unique()->numerify('####');
+
         return [
-            'name' => 'Product',
-            'slug' => Str::slug('product'),
+            'store_id' => Store::factory(),
+            'product_category_id' => ProductCategory::factory(),
+            'name' => $name,
+            'slug' => Str::slug($name),
             'image' => 'products/images/default.jpg',
             'description' => fake()->sentence(),
             'price' => fake()->randomFloat(2, 10, 1000),
@@ -25,5 +31,18 @@ class ProductFactory extends Factory
             'is_featured' => fake()->boolean(),
             'status' => fake()->randomElement(DefineStatus::values()),
         ];
+    }
+
+    /**
+     * An active product with an exact price and stock level.
+     */
+    public function stocked(int $quantity, float $price): static
+    {
+        return $this->state(fn () => [
+            'quantity'   => $quantity,
+            'price'      => $price,
+            'sale_price' => null,
+            'status'     => DefineStatus::ACTIVE,
+        ]);
     }
 }
