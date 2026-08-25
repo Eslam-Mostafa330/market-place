@@ -6,15 +6,10 @@ use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Admin\Profile\UpdateAdminProfileRequest;
 use App\Http\Resources\Admin\Profile\ProfileResource;
 use App\Services\Auth\AuthService;
-use App\Traits\ClearsCache;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 
 class ProfileController extends BaseApiController
 {
-    use ClearsCache;
-
     public function __construct(private readonly AuthService $authService) {}
 
     public function show(): JsonResponse
@@ -28,16 +23,7 @@ class ProfileController extends BaseApiController
      */
     public function showProfileSummary(): JsonResponse
     {
-        $userId = auth()->id();
-    
-        $admin = Cache::rememberForever("admin_summary_{$userId}", function () use ($userId) {
-            return DB::table('users')
-                ->where('id', $userId)
-                ->select('name')
-                ->first();
-        });
-
-        return $this->apiResponseShow($admin);
+        return $this->apiResponseShow(auth()->user()->only('name'));
     }
 
     public function update(UpdateAdminProfileRequest $request): JsonResponse
@@ -46,7 +32,6 @@ class ProfileController extends BaseApiController
         $data = $request->validated();
         $this->authService->logoutOtherDevicesOnPasswordChange($admin, $data, $request);
         $admin->update($data);
-        $admin->wasChanged('name') && $this->clearAdminSummaryCache($admin->id);
         return $this->apiResponseUpdated(new ProfileResource($admin));
     }
 }

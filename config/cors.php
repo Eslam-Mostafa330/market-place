@@ -15,7 +15,6 @@ return [
 
     'allowed_origins' => array_filter([
         env('FRONTEND_URL'),
-        env('FRONTEND_URL_WWW'),
     ]),
 
     'allowed_origins_patterns' => [],
@@ -24,7 +23,7 @@ return [
 
     'exposed_headers' => [],
 
-    'max_age' => 0,
+    'max_age' => (int) env('CORS_MAX_AGE', 7200),
 
     'supports_credentials' => true,
 ];

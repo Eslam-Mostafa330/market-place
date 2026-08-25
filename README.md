@@ -267,7 +267,7 @@ app/
 │   ├── Customer/              # CustomerPreferencesService, LoyaltyService
 │   ├── Rider/                 # RiderService, RiderLocationService
 │   └── ...                    # OrderPricingCalculatorService, PlaceOrderService, PayoutServices, etc.
-└── Traits/                    # ClearsCache, AdminAuthorization, ResolvesAuthCustomer, etc.
+└── Traits/                    # ApiResponse, AdminAuthorization, ResolvesAuthCustomer, etc.
 
 routes/api/v1/
 ├── admin/                     # Admin route files (auth, users, stores, orders, etc.)
@@ -306,7 +306,7 @@ cp .env.example .env
 php artisan key:generate
 
 # 5. Configure your .env
-# Set DB_*, REDIS_*, STRIPE_*, FRONTEND_URL, FRONTEND_URL_WWW, MAIL_* variables
+# Set DB_*, REDIS_*, STRIPE_*, FRONTEND_URL, SANCTUM_STATEFUL_DOMAINS, MAIL_* variables
 
 # 6. Run migrations
 php artisan migrate
@@ -323,8 +323,9 @@ php artisan storage:link
 The API serves **mobile clients via Bearer tokens** and the **web SPA via httpOnly session cookies** from the same endpoints — the client is detected per request from its origin. For the SPA to be treated as stateful, add its host(s) to `.env`. **The port is significant** — `localhost` does not match `localhost:5173`:
 
 ```env
-# Hosts whose requests use cookie/session auth (the SPA)
-SANCTUM_STATEFUL_DOMAINS=localhost:5173,localhost:3000
+# Hosts whose requests use cookie/session auth (the SPA).
+# Must match the host of FRONTEND_URL.
+SANCTUM_STATEFUL_DOMAINS=localhost:5173
 
 # Sessions are stored server-side so they can be revoked individually
 SESSION_DRIVER=database
@@ -634,7 +635,10 @@ POST   /api/v1/stores/{category_slug}/{store_slug}/products/{product_slug}/favor
 - **Web SPA** → stateful **httpOnly session cookie**, CSRF-protected, not readable by JavaScript (no tokens exposed to the browser)
 - **Server-side sessions** (`database` driver) — sessions are revocable: they can be invalidated individually on deactivation, password change, or per-device sign-out, which a client-stored session cannot
 - The client is detected per request from its origin (`SANCTUM_STATEFUL_DOMAINS`) — one set of endpoints serves both; role authorization (`isAdmin`, `isCustomer`, …) is guard-agnostic and reads `user.role`
+- Only `login` and the admin OTP `verify` branch on the client. `register`, password reset and email verification grant no credentials, so they are identical for both clients and are not duplicated per platform
+- After login the branch follows **how the request authenticated** (Sanctum's `TransientToken` marks a cookie session), not the `Origin` header — so a Bearer token sent from the SPA's own origin still takes the token path
 - Token refresh is a mobile-only concept — web sessions are rejected from the `/refresh` endpoint
+- A refresh retires the whole pair by `session_id`, so a stale access token cannot outlive the rotation
 ### Two-Factor Authentication
 OTP-based 2FA is currently enabled for **Admin** accounts. Other roles can be enabled by adding them to `config/two_factor.php`.
  
@@ -643,15 +647,23 @@ Admin 2FA flow:
 2. OTP submitted → token issued only after verification
 3. Trusted devices bypass OTP for 30 days (browser cookie-based)
 ### CORS
-- Allowed origins restricted to `FRONTEND_URL` and `FRONTEND_URL_WWW`
+- Allowed origins restricted to the single `FRONTEND_URL` env - no hardcoded origins
 - Credentials support enabled for cookie-based SPA auth
 - All origins allowed in local environment for testing tools (e.g. Postman, ApiDog)
 ### Origin Enforcement (`BlockDirectAccessMiddleware`)
-- Lightweight request filter to reduce unsolicited / automated traffic
-- For reduces noise from direct access attempts and automated scanners.
+Lightweight request filter that reduces noise from direct access attempts and automated scanners, and keeps foreign browsers away from the auth endpoints. A browser always attaches the origin of the page making the call and cannot forge it, so that header decides:
+
+| Request | Result |
+|---|---|
+| Page origin present, first-party | Allowed |
+| Page origin present, anything else | `404` — including requests carrying a Bearer token, so a stolen token cannot be replayed from another site |
+| No page origin, Bearer token | Allowed (mobile client) |
+| No page origin, `api/v1/*/auth/*` | Allowed — a client on its way to its first token has neither header nor token |
+| No page origin, anything else | `404` |
+
 - `OPTIONS` preflight requests are allowed through before origin validation
-- `HandleCors` runs before `BlockDirectAccess` to ensure proper CORS headers on blocked responses
-- Bypassed in local environment to avoid friction during development
+- `HandleCors` runs before `BlockDirectAccess` (Laravel's default global order) so blocked responses still carry CORS headers
+- Bypassed in local and testing, so origin blocking is only observable in production — `tests/Feature/Auth/LoginOriginFilterTest.php` drives the middleware with the environment forced
 ### Rate Limiting (Custom Middleware)
 ```
 Auth endpoints:         6 requests / minute
@@ -750,7 +762,6 @@ Rider picks up → delivers
 | Rider location | Redis writes (sub-ms) + throttled MySQL sync (30s) |
 | Business category lookup | Slug-based cache (120 days), observer-invalidated |
 | Store binding | Slug-based cache (90 days), observer-invalidated |
-| Profile summaries | Per-user cache keys, invalidated on update |
 | Vendor store list | Cached per vendor (60 days) |
 | Notification listing | Cursor-based pagination (better than offset for large sets) |
 | Settings | Cached indefinitely, cleared on admin update |
@@ -817,6 +828,8 @@ The first run migrates the test schema automatically. Each test runs inside a tr
 | `tests/Feature/Order/OrderLifecycleTest.php` | The whole flow from HTTP placement through to delivery and payouts |
 | `tests/Feature/Order/OrderListenersTest.php` | Each domain-event listener in isolation |
 | `tests/Feature/Auth/` | Registration, login, tokens, email verification, password reset, 2FA |
+| `tests/Feature/Auth/HybridAuthTest.php` | The session/token fork: which branch a request takes, and that neither leaks into the other |
+| `tests/Feature/Auth/LoginOriginFilterTest.php` | That the production origin filter blocks foreign browsers without locking out mobile clients |
 | `tests/Feature/Payment/StripeWebhookTest.php` | Webhook replay, out-of-order events, amount mismatch, refund-on-cancelled |
 | `tests/Feature/Payment/StripeWebhookEndpointTest.php` | Signature verification over the real HTTP endpoint |
 | `tests/Feature/Payment/WebhookReachabilityTest.php` | That the webhook survives the production request filters |

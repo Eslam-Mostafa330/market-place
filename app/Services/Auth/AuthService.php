@@ -3,19 +3,20 @@
 namespace App\Services\Auth;
 
 use App\Enums\DefineStatus;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 use App\Enums\TokenAbility;
 use App\Enums\UserRole;
 use App\Http\Resources\Auth\AuthUserResource;
 use App\Models\PersonalAccessToken;
 use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Support\Str;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
+use Laravel\Sanctum\TransientToken;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class AuthService
 {
@@ -25,9 +26,13 @@ class AuthService
      */
     public function attemptLogin(array $credentials, ?UserRole $expectedRole = null): ?User
     {
-        if (! Auth::once($credentials)) return null;
+        $guard = Auth::guard('web');
 
-        $user = Auth::user();
+        if (! $guard->once($credentials)) return null;
+
+        $user = $guard->user();
+
+        $guard->forgetUser();
 
         if ($expectedRole && $user->role !== $expectedRole) {
             return null;
@@ -37,9 +42,7 @@ class AuthService
             throw new HttpException(403, __('auth.email_not_verified'));
         }
 
-        if ($user->status === DefineStatus::INACTIVE) {
-            throw new HttpException(403, __('auth.account_inactive'));
-        }
+        $this->ensureActive($user);
 
         return $user;
     }
@@ -47,194 +50,152 @@ class AuthService
     /**
      * Grant access to a verified user.
      *
-     * Web clients start a session, while mobile clients receive access and refresh tokens.
+     * The SPA gets an httpOnly session cookie, everyone else gets a token pair, Status is re-checked
      */
     public function grantAccess(User $user, Request $request): array
     {
-        if ($this->isStatefulRequest($request)) {
-            $this->startWebSession($user, $request);
+        $this->ensureActive($user);
+
+        if (EnsureFrontendRequestsAreStateful::fromFrontend($request)) {
+            Auth::guard('web')->login($user);
+            $request->session()->regenerate();
 
             return ['user' => new AuthUserResource($user)];
         }
 
-        return $this->issueTokens($user);
+        $tokens = $this->tokenPair($user, Str::uuid()->toString());
+        $tokens['user'] = new AuthUserResource($user);
+
+        return $tokens;
     }
 
     /**
-     * Issue tokens directly for a verified user (used by mobile clients).
-     */
-    public function issueTokens($user): array
-    {
-        $sessionId = Str::uuid()->toString();
-
-        return [
-            'access_token'  => $this->createAccessToken($user, $sessionId),
-            'refresh_token' => $this->createRefreshToken($user, $sessionId),
-            'user'          => new AuthUserResource($user),
-        ];
-    }
-
-    /**
-     * Logout the current user.
-     *
-     * Web sessions are invalidated and their cookie is flushed, while mobile
-     * clients have the current session's access and refresh tokens revoked.
+     * Logout the current user, the web session is invalidated and its cookie
+     * flushed, or the current session's token pair is revoked.
      */
     public function logout(Request $request): void
     {
-        if ($this->isStatefulRequest($request)) {
-            $this->endWebSession($request);
+        if ($this->onWebSession($request)) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
 
             return;
         }
 
-        $this->revokeCurrentTokens($request->user());
+        $user = $request->user();
+
+        $user->tokens()->where('session_id', $user->currentAccessToken()->session_id)->delete();
     }
 
     /**
-     * Logout other devices after a password change.
-     *
-     * Web sessions are invalidated, while mobile clients revoke all other tokens.
+     * Logout other devices after a password change, keeping the current one.
      */
-    public function logoutOtherDevicesOnPasswordChange(Authenticatable $user, array &$data, Request $request): void
+    public function logoutOtherDevicesOnPasswordChange(User $user, array $data, Request $request): void
     {
         if (empty($data['password'])) {
             return;
         }
 
-        if ($this->isStatefulRequest($request)) {
-            Auth::logoutOtherDevices($data['password']);
+        if ($this->onWebSession($request)) {
+            $this->webSessionsOf($user)?->where('id', '!=', $request->session()->getId())->delete();
+
             return;
         }
 
-        $user->tokens()
-            ->where('id', '!=', $request->user()->currentAccessToken()->id)
-            ->delete();
+        $user->tokens()->where('session_id', '!=', $user->currentAccessToken()->session_id)->delete();
     }
 
     /**
-     * Refresh tokens for mobile clients.
-     * Web clients use session authentication and cannot refresh tokens.
+     * Rotate a mobile client's token pair.
      */
-    public function refresh($user, Request $request): array
+    public function refresh(User $user, Request $request): array
     {
-        if ($this->isStatefulRequest($request)) {
+        if ($this->onWebSession($request)) {
             throw new HttpException(403, __('auth.token_refresh_not_allowed'));
         }
 
-        $currentToken = $user->currentAccessToken();
-        $sessionId    = $currentToken?->session_id;
-        $currentToken?->delete();
+        $sessionId = $user->currentAccessToken()->session_id;
 
+        $user->tokens()->where('session_id', $sessionId)->delete();
+
+        return $this->tokenPair($user, $sessionId);
+    }
+
+    /**
+     * Revoke all of a user's access, tokens and web sessions alike.
+     */
+    public function revokeAllAccess(User $user): void
+    {
+        $user->tokens()->delete();
+        $this->webSessionsOf($user)?->delete();
+    }
+
+    /**
+     * Mint an access and refresh token sharing one session id, which is what
+     * lets logout and rotation act on the pair as a unit.
+     */
+    private function tokenPair(User $user, string $sessionId): array
+    {
         return [
-            'access_token'  => $this->createAccessToken($user, $sessionId),
-            'refresh_token' => $this->createRefreshToken($user, $sessionId),
+            'access_token' => $this->createToken(
+                $user,
+                'AccessToken',
+                TokenAbility::ACCESS_API,
+                Carbon::now()->addMinutes(config('sanctum.access_token_expiration')),
+                $sessionId,
+            ),
+            'refresh_token' => $this->createToken(
+                $user,
+                'RefreshToken',
+                TokenAbility::ISSUE_ACCESS_TOKEN,
+                Carbon::now()->addDays(config('sanctum.refresh_token_expiration')),
+                $sessionId,
+            ),
         ];
     }
 
     /**
-     * Create an access token for the given user and associate it with a session ID.
+     * Create a single token and return its plain text value.
      */
-    public function createAccessToken($user, string $sessionId): string
+    private function createToken(User $user, string $name, TokenAbility $ability, Carbon $expiresAt, string $sessionId): string
     {
-        $token = PersonalAccessToken::createWithSession(
+        return PersonalAccessToken::createWithSession(
             $user,
-            'AccessToken',
-            [TokenAbility::ACCESS_API->value],
-            Carbon::now()->addMinutes(config('sanctum.access_token_expiration')),
-            $sessionId
-        );
-
-        return $token->plainTextToken;
+            $name,
+            [$ability->value],
+            $expiresAt,
+            $sessionId,
+        )->plainTextToken;
     }
 
     /**
-     * Create a refresh token for the given user and associate it with a session ID.
+     * Reject a login or an access grant for a deactivated account.
      */
-    public function createRefreshToken($user, string $sessionId): string
+    private function ensureActive(User $user): void
     {
-        $token = PersonalAccessToken::createWithSession(
-            $user,
-            'RefreshToken',
-            [TokenAbility::ISSUE_ACCESS_TOKEN->value],
-            Carbon::now()->addDays(config('sanctum.refresh_token_expiration')),
-            $sessionId
-        );
-
-        return $token->plainTextToken;
-    }
-
-    /**
-     * Revoke all user access by removing tokens and web sessions.
-     */
-    public function revokeAllAccess(User $user): void
-    {
-        $this->revokeAllTokens($user);
-        $this->revokeWebSessions($user);
-    }
-
-    /**
-     * Log the user into the stateful "web" guard, rotating the session id to
-     * prevent session fixation. This sets the httpOnly session cookie on the response.
-     */
-    private function startWebSession(User $user, Request $request): void
-    {
-        Auth::guard('web')->login($user);
-        $request->session()->regenerate();
-    }
-
-    /**
-     * Invalidate the web session and issue a fresh CSRF token.
-     */
-    private function endWebSession(Request $request): void
-    {
-        Auth::guard('web')->logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-    }
-
-    /**
-     * Revoke the access token and its paired refresh token for the current session.
-     */
-    private function revokeCurrentTokens($user): void
-    {
-        $currentToken = $user->currentAccessToken();
-
-        if ($currentToken) {
-            $sessionId = $currentToken->session_id;
-            $currentToken->delete();
-            $user->tokens()->where('name', 'RefreshToken')->where('session_id', $sessionId)->delete();
+        if ($user->status === DefineStatus::INACTIVE) {
+            throw new HttpException(403, __('auth.account_inactive'));
         }
     }
 
     /**
-     * Revoke all tokens for a user (used for admin actions).
+     * Check how the current request authenticated rather than where it came from
      */
-    public function revokeAllTokens(User $user): void
+    private function onWebSession(Request $request): bool
     {
-        $user->tokens()->delete();
+        return $request->user()?->currentAccessToken() instanceof TransientToken;
     }
 
     /**
-     * Delete the user's server-side web sessions,
-     * immediately invalidating any active browser sessions.
+     * Query the user's session rows, or null when sessions aren't database-backed.
      */
-    private function revokeWebSessions(User $user): void
+    private function webSessionsOf(User $user): ?Builder
     {
         if (config('session.driver') !== 'database') {
-            return;
+            return null;
         }
 
-        DB::table(config('session.table', 'sessions'))
-            ->where('user_id', $user->id)
-            ->delete();
-    }
-
-    /**
-     * Check if the request comes from the first-party SPA.
-     */
-    private function isStatefulRequest(Request $request): bool
-    {
-        return EnsureFrontendRequestsAreStateful::fromFrontend($request);
+        return DB::table(config('session.table', 'sessions'))->where('user_id', $user->getKey());
     }
 }

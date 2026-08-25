@@ -7,16 +7,12 @@ use App\Http\Requests\Customer\Profile\UpdateCustomerProfileRequest;
 use App\Http\Resources\Customer\Profile\ProfileResource;
 use App\Models\User;
 use App\Services\Auth\AuthService;
-use App\Traits\ClearsCache;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Arr;
 
 class ProfileController extends BaseApiController
 {
-    use ClearsCache;
-
     public function __construct(private readonly AuthService $authService) {}
 
     public function show(): JsonResponse
@@ -31,16 +27,7 @@ class ProfileController extends BaseApiController
      */
     public function showProfileSummary(): JsonResponse
     {
-        $userId = auth()->id();
-    
-        $customer = Cache::rememberForever("customer_summary_{$userId}", function () use ($userId) {
-            return DB::table('users')
-                ->where('id', $userId)
-                ->select('name')
-                ->first();
-        });
-
-        return $this->apiResponseShow($customer);
+        return $this->apiResponseShow(auth()->user()->only('name'));
     }
 
     public function update(UpdateCustomerProfileRequest $request): JsonResponse
@@ -54,7 +41,6 @@ class ProfileController extends BaseApiController
             $this->updateCustomerProfile($customer, $data);
         });
 
-        $customer->wasChanged('name') && $this->clearCustomerSummaryCache($customer->id);
         $customer->load('customerProfile:user_id,date_of_birth,preferences,wallet_balance,loyalty_points');
         return $this->apiResponseUpdated(new ProfileResource($customer));
     }

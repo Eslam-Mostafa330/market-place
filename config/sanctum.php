@@ -13,6 +13,9 @@ return [
     | authentication cookies. Typically, these should include your local
     | and production domains which access your API via a frontend SPA.
     |
+    | Must list the host of FRONTEND_URL: an SPA origin missing here falls
+    | through to the token branch and is handed tokens instead of a session.
+    |
     */
 
     'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(

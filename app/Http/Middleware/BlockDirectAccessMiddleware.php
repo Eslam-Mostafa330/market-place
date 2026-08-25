@@ -6,71 +6,78 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Filters unsolicited traffic: a browser is admitted only from a first-party
+ * origin, anything else only with a token or on its way to one.
+ */
 class BlockDirectAccessMiddleware
 {
     /**
-     * Server-to-server endpoints that bypass this middleware.
-     *
-     * These requests authenticate by other means (e.g. Stripe signature).
+     * Bypass the filter — these authenticate by other means (Stripe signature).
      */
     private const EXEMPT_PATHS = [
         'api/v1/stripe/webhook',
     ];
 
     /**
-     * Lightweight request filter to reduce unsolicited / automated traffic.
-     *
-     * This middleware is for reduces noise from
-     * direct access attempts and automated scanners.
-     *
-     * Behavior:
-     * - Allows all requests in the local and testing environments
-     * - Allows OPTIONS requests (CORS preflight)
-     * - Allows requests with Bearer tokens (API / mobile clients)
-     * - Allows browser requests from trusted frontend domains
-     * - Returns 404 for all other requests
+     * Reachable without a token: a client logging in or resetting a password
+     * sends no origin and holds no token yet. Still rate limited per IP.
      */
+    private const CREDENTIAL_PATHS = [
+        'api/v1/*/auth/*',
+    ];
+
     public function handle(Request $request, Closure $next): Response
     {
         if (app()->environment(['local', 'testing'])) {
             return $next($request);
         }
 
-        if ($request->is(self::EXEMPT_PATHS)) {
+        if ($request->is(self::EXEMPT_PATHS) || $request->isMethod('OPTIONS')) {
             return $next($request);
         }
 
-        if ($request->isMethod('OPTIONS')) {
-            return $next($request);
+        if ($origin = $this->browserOrigin($request)) {
+            return $this->isFirstParty($origin) ? $next($request) : response('', 404);
         }
 
-        if ($request->bearerToken()) {
-            return $next($request);
+        return $request->bearerToken() || $request->is(self::CREDENTIAL_PATHS)
+            ? $next($request)
+            : response('', 404);
+    }
+
+    /**
+     * The origin of the page issuing the request, or null for a non-browser client.
+     */
+    private function browserOrigin(Request $request): ?string
+    {
+        return $request->header('Origin') ?: $request->header('Referer') ?: null;
+    }
+
+    /**
+     * Determines if the given origin belongs to one of our own frontends.
+     */
+    private function isFirstParty(string $origin): bool
+    {
+        $origin  = $this->toOrigin($origin);
+        $allowed = array_map($this->toOrigin(...), config('cors.allowed_origins', []));
+
+        return $origin !== null && in_array($origin, $allowed, true);
+    }
+
+    /**
+     * Convert a URL to its origin, or null if it cannot be parsed.
+     */
+    private function toOrigin(?string $url): ?string
+    {
+        $parts = parse_url((string) $url);
+
+        if (empty($parts['scheme']) || empty($parts['host'])) {
+            return null;
         }
 
-        $allowedOrigins = array_filter([
-            env('FRONTEND_URL'),
-            env('FRONTEND_URL_WWW'),
-        ]);
+        $port = isset($parts['port']) ? ':' . $parts['port'] : '';
 
-        $origin  = $request->header('Origin');
-        $referer = $request->header('Referer');
-
-        $originHost = $origin
-            ? (parse_url($origin, PHP_URL_HOST) ?: null)
-            : null;
-
-        $refererHost = $referer
-            ? (parse_url($referer, PHP_URL_HOST) ?: null)
-            : null;
-
-        $allowedHosts = collect($allowedOrigins)
-            ->map(fn ($url) => parse_url($url, PHP_URL_HOST) ?: null)
-            ->filter();
-
-        $isFromFrontend = $allowedHosts->contains($originHost)
-            || $allowedHosts->contains($refererHost);
-
-        return $isFromFrontend ? $next($request) : response('', 404);
+        return strtolower($parts['scheme'] . '://' . $parts['host']) . $port;
     }
 }

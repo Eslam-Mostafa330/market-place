@@ -15,7 +15,6 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
-use Illuminate\Http\Middleware\HandleCors;
 
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -62,7 +61,6 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
-        $middleware->append(HandleCors::class);
         $middleware->append(BlockDirectAccessMiddleware::class);
         $middleware->appendToGroup('api', [RateLimiterThrottleMiddleware::class]);
 

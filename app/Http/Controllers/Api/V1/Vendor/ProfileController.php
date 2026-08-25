@@ -6,15 +6,10 @@ use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Requests\Vendor\Profile\UpdateVendorProfileRequest;
 use App\Http\Resources\Vendor\Profile\ProfileResource;
 use App\Services\Auth\AuthService;
-use App\Traits\ClearsCache;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 
 class ProfileController extends BaseApiController
 {
-    use ClearsCache;
-
     public function __construct(private readonly AuthService $authService) {}
 
     public function show(): JsonResponse
@@ -28,16 +23,7 @@ class ProfileController extends BaseApiController
      */
     public function showProfileSummary(): JsonResponse
     {
-        $userId = auth()->id();
-    
-        $vendor = Cache::rememberForever("vendor_summary_{$userId}", function () use ($userId) {
-            return DB::table('users')
-                ->where('id', $userId)
-                ->select('name')
-                ->first();
-        });
-
-        return $this->apiResponseShow($vendor);
+        return $this->apiResponseShow(auth()->user()->only('name'));
     }
 
     public function update(UpdateVendorProfileRequest $request): JsonResponse
@@ -46,7 +32,6 @@ class ProfileController extends BaseApiController
         $data = $request->validated();
         $this->authService->logoutOtherDevicesOnPasswordChange($vendor, $data, $request);
         $vendor->update($data);
-        $vendor->wasChanged('name') && $this->clearVendorSummaryCache($vendor->id);
         return $this->apiResponseUpdated(new ProfileResource($vendor));
     }
 }
