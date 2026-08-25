@@ -20,6 +20,11 @@
     <php>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <!-- Argon2id at its cheapest legal cost: keeps the real hashing driver in
+             the test path while dropping ~18ms per hash down to ~0.1ms. -->
+        <env name="ARGON_MEMORY" value="64"/>
+        <env name="ARGON_TIME" value="1"/>
+        <env name="ARGON_THREADS" value="1"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>

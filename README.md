@@ -235,6 +235,7 @@ All notifications are **queued** on dedicated queues:
   - General routes: 60 req/min
   - Combined IP + user identifier to prevent bypass
 - **`.htaccess` hardening**: blocks oversized query strings, empty User-Agents, path traversal, sensitive file access; adds `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` headers
+- **Argon2id password hashing** at the OWASP cost floor (19 MiB memory, 2 iterations, 1 thread), replacing the default bcrypt. Unlike bcrypt it is memory-hard, so GPU and ASIC cracking cannot be parallelised cheaply. `rehash_on_login` transparently upgrades any hash whose parameters drift from the config
 - Sanctum stateful cookies for SPA + Bearer tokens for mobile (dual strategy)
 
 ---
@@ -283,7 +284,7 @@ routes/api/v1/
 
 ### Prerequisites
 
-- PHP 8.3+
+- PHP 8.3+, built with Argon2id support (`php -r 'var_dump(defined("PASSWORD_ARGON2ID"));'`)
 - Composer
 - MySQL 8.0+
 - Redis (see below for Windows setup)
