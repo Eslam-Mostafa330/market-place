@@ -67,4 +67,19 @@ trait AdminAuthorization
     {
         abort_if(! $customer->isCustomer(), 404);
     }
+
+    /**
+     * Authorize actions performed on support agent accounts.
+     *
+     * Ensures that the targeted user record belongs to a support agent.
+     * Prevents performing agent-specific operations on other staff accounts.
+     *
+     * @param \App\Models\User $agent The user instance being targeted by the action.
+     *
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
+     */
+    protected function authorizeSupportAgentAction(User $agent): void
+    {
+        abort_if(! $agent->isSupport(), 404);
+    }
 }

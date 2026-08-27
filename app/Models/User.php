@@ -188,6 +188,12 @@ class User extends BaseAuthenticatableModel
         $query->where('role', UserRole::RIDER->value);
     }
 
+    #[Scope]
+    protected function support(Builder $query): void
+    {
+        $query->where('role', UserRole::SUPPORT->value);
+    }
+
     /**
      * Scope a query to only retrieves the available riders.
      */
@@ -234,6 +240,22 @@ class User extends BaseAuthenticatableModel
     public function isRider(): bool
     {
         return $this->role === UserRole::RIDER;
+    }
+
+    /**
+     * Ensure the user is a support agent
+     */
+    public function isSupport(): bool
+    {
+        return $this->role === UserRole::SUPPORT;
+    }
+
+    /**
+     * Ensure the user staffs the support desk, agents and admins.
+     */
+    public function staffsSupportDesk(): bool
+    {
+        return $this->isSupport() || $this->isAdmin();
     }
 
     /*******************************/

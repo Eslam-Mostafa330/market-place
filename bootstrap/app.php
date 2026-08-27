@@ -6,6 +6,7 @@ use App\Http\Middleware\BlockDirectAccessMiddleware;
 use App\Http\Middleware\EnsureAdminMiddleware;
 use App\Http\Middleware\EnsureCustomerMiddleware;
 use App\Http\Middleware\EnsureRiderMiddleware;
+use App\Http\Middleware\EnsureSupportMiddleware;
 use App\Http\Middleware\EnsureVendorIsVerifiedMiddleware;
 use App\Http\Middleware\EnsureVendorMiddleware;
 use App\Http\Middleware\RateLimiterThrottleMiddleware;
@@ -46,6 +47,14 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->as('rider.')
                 ->group(base_path('routes/api/v1/rider/rider.php'));
 
+            Route::prefix('api/v1/support/auth')->middleware(['api'])
+                ->as('support.auth.')
+                ->group(base_path('routes/api/v1/support/auth.php'));
+
+            Route::prefix('api/v1/support')->middleware(['api', 'auth:sanctum', 'ability:'.TokenAbility::ACCESS_API->value, 'isSupport'])
+                ->as('support.')
+                ->group(base_path('routes/api/v1/support/support.php'));
+
             Route::prefix('api/v1/customer/auth')->middleware(['api'])
                 ->as('customer.auth.')
                 ->group(base_path('routes/api/v1/customer/auth.php'));
@@ -70,6 +79,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'vendor.verified' => EnsureVendorIsVerifiedMiddleware::class,
             'isRider'         => EnsureRiderMiddleware::class,
             'isCustomer'      => EnsureCustomerMiddleware::class,
+            'isSupport'       => EnsureSupportMiddleware::class,
             'ability'         => CheckForAnyAbility::class,
         ]);
     })

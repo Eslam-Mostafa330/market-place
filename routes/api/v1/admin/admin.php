@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\Admin\StoreBranchController;
 use App\Http\Controllers\Api\V1\Admin\StoreController;
 use App\Http\Controllers\Api\V1\Admin\StoreProductCategoryController;
 use App\Http\Controllers\Api\V1\Admin\StoreProductController;
+use App\Http\Controllers\Api\V1\Admin\SupportAgentController;
 use App\Http\Controllers\Api\V1\Admin\VendorBusinessProfileController;
 use App\Http\Controllers\Api\V1\Admin\VendorController;
 use App\Http\Controllers\Api\V1\Admin\VendorPayoutController;
@@ -27,7 +28,7 @@ use Illuminate\Support\Facades\Route;
 Route::controller(ProfileController::class)->prefix('profile')->group(function () {
     Route::get('/', 'show');
     Route::get('/summary', 'showProfileSummary');
-    Route::patch('/update', 'update');
+    Route::patch('/', 'update');
 });
 
 # ----- Admin Routes
@@ -51,6 +52,10 @@ Route::patch('customers/{customer}/toggle-status', [CustomerController::class, '
 Route::get('riders/available', AvailableRiderOrderController::class);
 Route::apiResource('riders', RiderController::class);
 Route::patch('riders/{rider}/toggle-status', [RiderController::class, 'toggleStatus']);
+
+# ----- Support Agent Routes
+Route::apiResource('support-agents', SupportAgentController::class)->parameters(['support-agents' => 'agent'])->except('show');
+Route::patch('support-agents/{agent}/toggle-status', [SupportAgentController::class, 'toggleStatus']);
 
 # ----- Business Category Routes
 Route::apiResource('business-categories', BusinessCategoryController::class)->except('show');

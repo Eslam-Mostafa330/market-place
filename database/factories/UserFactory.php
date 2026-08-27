@@ -45,4 +45,9 @@ class UserFactory extends Factory
     {
         return $this->state(fn () => ['role' => UserRole::ADMIN]);
     }
+
+    public function support(): static
+    {
+        return $this->state(fn () => ['role' => UserRole::SUPPORT]);
+    }
 }

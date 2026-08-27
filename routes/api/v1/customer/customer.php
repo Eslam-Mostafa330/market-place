@@ -8,6 +8,9 @@ use App\Http\Controllers\Api\V1\Customer\OrderController;
 use App\Http\Controllers\Api\V1\Customer\PreferencesController;
 use App\Http\Controllers\Api\V1\Customer\ProfileController;
 use App\Http\Controllers\Api\V1\Customer\StoreReviewController;
+use App\Http\Controllers\Api\V1\Customer\SupportAvailabilityController;
+use App\Http\Controllers\Api\V1\Customer\SupportMessageController;
+use App\Http\Controllers\Api\V1\Customer\SupportTicketController;
 use Illuminate\Support\Facades\Route;
 
 

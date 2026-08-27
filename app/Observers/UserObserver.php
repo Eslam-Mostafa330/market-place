@@ -19,8 +19,8 @@ class UserObserver
     public function creating(User $user): void
     {
         match ($user->role) {
-            UserRole::ADMIN => $this->setAdminDefaults($user),
-            default         => $this->setDefaultUserStatus($user),
+            UserRole::ADMIN, UserRole::SUPPORT => $this->setStaffDefaults($user),
+            default                            => $this->setDefaultUserStatus($user),
         };
     }
 
@@ -48,8 +48,8 @@ class UserObserver
         }
 
         $user->email_verified_at = match ($user->role) {
-            UserRole::ADMIN => now(),
-            default         => null,
+            UserRole::ADMIN, UserRole::SUPPORT => now(),
+            default                            => null,
         };
     }
 
@@ -85,9 +85,12 @@ class UserObserver
     }
 
     /**
-     * Auto verify and activate admin accounts.
+     * Auto verify and activate staff accounts.
+     *
+     * Admins and support agents are created by another admin rather than by
+     * signing up, so there is no inbox to confirm and nothing to verify.
      */
-    private function setAdminDefaults(User $user): void
+    private function setStaffDefaults(User $user): void
     {
         $user->email_verified_at = now();
         $user->phone_verified_at = now();

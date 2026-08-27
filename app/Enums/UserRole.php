@@ -8,6 +8,7 @@ enum UserRole: int
     case VENDOR = 2;
     case CUSTOMER = 3;
     case RIDER = 4;
+    case SUPPORT = 5;
 
     /**
      * Get the default user role (CUSTOMER)

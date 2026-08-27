@@ -21,6 +21,14 @@ class RateLimiterThrottleMiddleware
     ];
 
     /**
+     * Staff routes are throttled only before login.
+     */
+    private const STAFF_ROUTE_PREFIXES = [
+        'admin.',
+        'support.',
+    ];
+
+    /**
      * Create a new middleware instance.
      *
      * @param RateLimiter $limiter
@@ -69,8 +77,10 @@ class RateLimiterThrottleMiddleware
 
         $routeName = $request->route()?->getName() ?? '';
 
-        if (str_starts_with($routeName, 'admin.') && ! str_starts_with($routeName, 'admin.auth.')) {
-            return null;
+        foreach (self::STAFF_ROUTE_PREFIXES as $prefix) {
+            if (str_starts_with($routeName, $prefix) && ! str_starts_with($routeName, $prefix.'auth.')) {
+                return null;
+            }
         }
 
         if (str_contains($routeName, '.auth.')) {
