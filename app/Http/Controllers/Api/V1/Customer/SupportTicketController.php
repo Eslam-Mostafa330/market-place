@@ -6,6 +6,7 @@ use App\Filters\CustomerSupportTicketFilters;
 use App\Http\Controllers\Api\BaseApiController;
 use App\Http\Controllers\Api\V1\Customer\Concerns\SupportTicketAuthorization;
 use App\Http\Requests\Customer\Support\StoreTicketRequest;
+use App\Http\Resources\Customer\Support\TicketListResource;
 use App\Http\Resources\Customer\Support\TicketResource;
 use App\Models\SupportTicket;
 use App\Services\Support\SupportTicketService;
@@ -23,13 +24,12 @@ class SupportTicketController extends BaseApiController
         $customerId = auth()->id();
 
         $tickets = SupportTicket::where('requester_id', $customerId)
-            ->with('agent:id,name')
             ->withCount(['messages as unread_count' => fn ($query) => $query->unreadFor($customerId)])
             ->useFilters(CustomerSupportTicketFilters::class)
             ->latest('last_message_at')
             ->dynamicPaginate();
 
-        return TicketResource::collection($tickets);
+        return TicketListResource::collection($tickets);
     }
 
     public function store(StoreTicketRequest $request): JsonResponse

@@ -116,6 +116,7 @@ it('keeps the current refresh token usable after a password change', function ()
         ->patchJson('/api/v1/customer/profile', [
             'password'              => 'An0ther!Passw0rd',
             'password_confirmation' => 'An0ther!Passw0rd',
+            'current_password'      => 'Str0ng!Passw0rd',
         ])->assertOk();
 
     $this->app['auth']->forgetGuards();
@@ -138,6 +139,7 @@ it('revokes the other devices tokens on a password change', function () {
         ->patchJson('/api/v1/customer/profile', [
             'password'              => 'An0ther!Passw0rd',
             'password_confirmation' => 'An0ther!Passw0rd',
+            'current_password'      => 'Str0ng!Passw0rd',
         ])->assertOk();
 
     expect($this->customer->tokens()->count())->toBe(2);
@@ -155,6 +157,7 @@ it('changes the password on the session path without erroring', function () {
         ->patchJson('/api/v1/customer/profile', [
             'password'              => 'An0ther!Passw0rd',
             'password_confirmation' => 'An0ther!Passw0rd',
+            'current_password'      => 'Str0ng!Passw0rd',
         ])
         ->assertOk();
 
@@ -180,6 +183,7 @@ it('drops other session rows on a session password change', function () {
         ->patchJson('/api/v1/customer/profile', [
             'password'              => 'An0ther!Passw0rd',
             'password_confirmation' => 'An0ther!Passw0rd',
+            'current_password'      => 'Str0ng!Passw0rd',
         ])
         ->assertOk();
 

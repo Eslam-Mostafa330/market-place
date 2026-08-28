@@ -54,3 +54,20 @@ Route::controller(StoreReviewController::class)->group(function () {
 
 # ----- Preference Routes
 Route::get('preferences', PreferencesController::class);
+
+# ----- Support Availability Ticket Routes
+Route::get('support/availability', SupportAvailabilityController::class);
+
+# ----- Support Ticket Routes
+Route::controller(SupportTicketController::class)->prefix('support/tickets')->group(function () {
+    Route::get('/', 'index');
+    Route::post('/', 'store');
+    Route::get('/{ticket}', 'show');
+});
+
+# ----- Support Ticket Messages Routes
+Route::controller(SupportMessageController::class)->prefix('support/tickets/{ticket}')->group(function () {
+    Route::get('messages', 'index');
+    Route::post('messages', 'store');
+    Route::post('read', 'markRead');
+});

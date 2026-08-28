@@ -161,6 +161,30 @@ class User extends BaseAuthenticatableModel
             ->withTimestamps();
     }
 
+    /**
+     * The customer can open many support tickets
+     */
+    public function supportTickets(): HasMany
+    {
+        return $this->hasMany(SupportTicket::class, 'requester_id');
+    }
+
+    /**
+     * The support agent can be handling many tickets
+     */
+    public function assignedTickets(): HasMany
+    {
+        return $this->hasMany(SupportTicket::class, 'agent_id');
+    }
+
+    /**
+     * The support agent can have one presence record
+     */
+    public function agentStatus(): HasOne
+    {
+        return $this->hasOne(SupportAgentStatus::class);
+    }
+
     /**** ************* ****/
     /**** Local Scopes  ****/
     /**** ************* ****/
