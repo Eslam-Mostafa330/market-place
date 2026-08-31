@@ -32,12 +32,8 @@ class SupportTicketFilters extends QueryFilters
      */
     public function sort($value): void
     {
-        $this->builder->reorder();
-
-        match ($value) {
-            'oldest'   => $this->builder->orderBy('last_message_at', 'ASC'),
-            'latest'   => $this->builder->orderBy('last_message_at', 'DESC'),
-            default    => $this->builder->orderBy('last_message_at', 'DESC'),
-        };
+        $this->builder
+            ->reorder()
+            ->orderBy('last_message_at', $value === 'oldest' ? 'ASC' : 'DESC');
     }
 }

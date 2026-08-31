@@ -10,6 +10,7 @@ use App\Http\Middleware\EnsureSupportMiddleware;
 use App\Http\Middleware\EnsureVendorIsVerifiedMiddleware;
 use App\Http\Middleware\EnsureVendorMiddleware;
 use App\Http\Middleware\RateLimiterThrottleMiddleware;
+use App\Http\Middleware\RefreshSupportPresence;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,7 +21,6 @@ use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
         then: function () {
             Route::prefix('api/v1/admin/auth')->middleware(['api'])
@@ -51,7 +51,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->as('support.auth.')
                 ->group(base_path('routes/api/v1/support/auth.php'));
 
-            Route::prefix('api/v1/support')->middleware(['api', 'auth:sanctum', 'ability:'.TokenAbility::ACCESS_API->value, 'isSupport'])
+            Route::prefix('api/v1/support')->middleware(['api', 'auth:sanctum', 'ability:'.TokenAbility::ACCESS_API->value, 'isSupport', 'support.presence'])
                 ->as('support.')
                 ->group(base_path('routes/api/v1/support/support.php'));
 
@@ -66,7 +66,15 @@ return Application::configure(basePath: dirname(__DIR__))
             Route::prefix('api/v1')->middleware(['api'])
                 ->as('public.')
                 ->group(base_path('routes/api/v1/public.php'));
+
+            if (app()->environment('local')) {
+                Route::middleware('web')->group(base_path('routes/web.php'));
+            }
         }
+    )
+    ->withBroadcasting(
+        channels: __DIR__.'/../routes/channels.php',
+        attributes: ['prefix' => 'api/v1', 'middleware' => ['api', 'auth:sanctum', 'ability:'.TokenAbility::ACCESS_API->value]],
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
@@ -74,13 +82,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('api', [RateLimiterThrottleMiddleware::class]);
 
         $middleware->alias([
-            'isAdmin'         => EnsureAdminMiddleware::class,
-            'isVendor'        => EnsureVendorMiddleware::class,
-            'vendor.verified' => EnsureVendorIsVerifiedMiddleware::class,
-            'isRider'         => EnsureRiderMiddleware::class,
-            'isCustomer'      => EnsureCustomerMiddleware::class,
-            'isSupport'       => EnsureSupportMiddleware::class,
-            'ability'         => CheckForAnyAbility::class,
+            'isAdmin'          => EnsureAdminMiddleware::class,
+            'isVendor'         => EnsureVendorMiddleware::class,
+            'vendor.verified'  => EnsureVendorIsVerifiedMiddleware::class,
+            'isRider'          => EnsureRiderMiddleware::class,
+            'isCustomer'       => EnsureCustomerMiddleware::class,
+            'isSupport'        => EnsureSupportMiddleware::class,
+            'support.presence' => RefreshSupportPresence::class,
+            'ability'          => CheckForAnyAbility::class,
         ]);
     })
     ->withSingletons([

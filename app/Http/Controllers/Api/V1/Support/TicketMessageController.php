@@ -20,10 +20,8 @@ class TicketMessageController extends BaseApiController
     public function index(SupportTicket $ticket): AnonymousResourceCollection
     {
         $messages = $ticket->messages()
-            ->select('id', 'sender_id', 'body', 'read_at', 'created_at')
+            ->conversation()
             ->with('sender:id,name,role')
-            ->latest()
-            ->orderByDesc('id')
             ->cursorPaginate(config('support.messages_per_page'));
 
         return MessageResource::collection($messages);
@@ -39,7 +37,7 @@ class TicketMessageController extends BaseApiController
             body: $request->validated('body'),
         );
 
-        return $this->apiResponseStored(new MessageResource($message->load('sender:id,name,role')));
+        return $this->apiResponseStored(new MessageResource($message->loadMissing('sender:id,name,role')));
     }
 
     /**

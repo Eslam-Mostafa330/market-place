@@ -62,4 +62,18 @@ class SupportMessage extends BaseModel
     {
         $query->whereNull('read_at')->where('sender_id', '!=', $userId);
     }
+
+    /**
+     * The conversation newest first, carrying only what a chat bubble needs.
+     *
+     * Two messages can land in the same second, so the id breaks the tie. A
+     * cursor walking on time alone would repeat or skip one of the pair.
+     */
+    #[Scope]
+    protected function conversation(Builder $query): void
+    {
+        $query->select('id', 'sender_id', 'body', 'read_at', 'created_at')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
+    }
 }

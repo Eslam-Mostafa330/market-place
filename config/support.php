@@ -1,34 +1,42 @@
 <?php
 
 /*
-* Settings for the customer support desk, agent presence and ticket limits.
-*/
+ * Support desk, agent presence and ticket limits.
+ */
 return [
     /*
-     * How long an agent's last heartbeat keeps counting as presence. Agents ping
-     * while their console is open, so anything older means the tab is gone.
+     * How long an agent remains active based on their last request.
      */
-    'agent_presence_ttl_seconds' => env('SUPPORT_AGENT_PRESENCE_TTL', 120),
+    'agent_presence_ttl_minutes' => env('SUPPORT_AGENT_PRESENCE_TTL_MINUTES', 15),
 
     /*
-     * How many tickets a customer may have running at once, which stops a single
-     * account from flooding the queue.
+     * How often an agent's ordinary requests are allowed to write a heartbeat.
+     * Well under the presence window above, and far above one per request.
+     */
+    'heartbeat_write_every_minutes' => 1,
+
+    /*
+     * Maximum number of open tickets per customer.
      */
     'max_open_tickets_per_customer' => 3,
 
     /*
-     * Length ceiling for a single chat message.
+     * Maximum length of a chat message.
      */
     'message_max_length' => 2000,
 
     /*
-     * How many messages a ticket page returns at a time.
+     * Number of messages returned per ticket page.
      */
     'messages_per_page' => 30,
 
     /*
-     * How long a resolved ticket waits for the customer to come back before the
-     * desk closes it for good.
+     * How long a resolved ticket stays open before being closed.
      */
     'auto_close_resolved_after_hours' => env('SUPPORT_AUTO_CLOSE_HOURS', 48),
+
+    /*
+     * How long to wait for a customer reply after the desk responds.
+     */
+    'abandoned_after_minutes' => env('SUPPORT_ABANDONED_MINUTES', 60),
 ];

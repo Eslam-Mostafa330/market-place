@@ -3,6 +3,7 @@
 namespace App\Services\Support;
 
 use App\Enums\TicketStatus;
+use App\Events\Support\SupportMessageSent;
 use App\Models\SupportMessage;
 use App\Models\SupportTicket;
 use App\Models\User;
@@ -17,7 +18,7 @@ class SupportMessageService
      */
     public function post(SupportTicket $ticket, User $sender, string $body): SupportMessage
     {
-        return DB::transaction(function () use ($ticket, $sender, $body) {
+        $message = DB::transaction(function () use ($ticket, $sender, $body) {
             $ticket = SupportTicket::where('id', $ticket->id)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -40,6 +41,12 @@ class SupportMessageService
 
             return $message;
         });
+
+        $message->setRelation('sender', $sender);
+
+        broadcast(new SupportMessageSent($message))->toOthers();
+
+        return $message;
     }
 
     /**
@@ -59,19 +66,21 @@ class SupportMessageService
      */
     private function ticketStateAfter(SupportTicket $ticket, User $sender): array
     {
-        $attributes = ['last_message_at' => now()];
-
         if ($sender->staffsSupportDesk()) {
-            return $attributes + [
-                'first_replied_at' => $ticket->first_replied_at ?? now(),
-                'status'           => TicketStatus::ASSIGNED,
+            return [
+                'last_message_at'   => now(),
+                'first_replied_at'  => $ticket->first_replied_at ?? now(),
+                'status'            => TicketStatus::ASSIGNED,
+                'awaiting_customer' => true,
             ];
         }
 
-        if ($ticket->status === TicketStatus::RESOLVED) {
-            $attributes['status'] = TicketStatus::ASSIGNED;
-        }
-
-        return $attributes;
+        return [
+            'last_message_at'   => now(),
+            'awaiting_customer' => false,
+            'status'            => $ticket->status === TicketStatus::RESOLVED
+                ? TicketStatus::ASSIGNED
+                : $ticket->status,
+        ];
     }
 }

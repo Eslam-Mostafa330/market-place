@@ -22,9 +22,7 @@ class SupportMessageController extends BaseApiController
         $this->authorizeTicket($ticket);
 
         $messages = $ticket->messages()
-            ->select('id', 'sender_id', 'body', 'read_at', 'created_at')
-            ->latest()
-            ->orderByDesc('id')
+            ->conversation()
             ->cursorPaginate(config('support.messages_per_page'));
 
         return MessageResource::collection($messages);

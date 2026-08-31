@@ -5,6 +5,7 @@ namespace App\Services\Support;
 use App\Enums\TicketCategory;
 use App\Enums\TicketStatus;
 use App\Models\Order;
+use App\Models\SupportAgentStatus;
 use App\Models\SupportTicket;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -43,7 +44,7 @@ class SupportTicketService
     /**
      * Put a ticket in an agent's hands.
      *
-     * Claiming is first come first served
+     * Claiming is first come, first served.
      */
     public function claim(SupportTicket $ticket, User $agent): SupportTicket
     {
@@ -70,7 +71,7 @@ class SupportTicketService
     /**
      * Hand a ticket back to the queue.
      *
-     * An agent who cannot carry a ticket through can escalating it.
+     * An agent who cannot carry a ticket through hands it to whoever can.
      */
     public function release(SupportTicket $ticket): SupportTicket
     {
@@ -128,15 +129,48 @@ class SupportTicketService
     {
         return SupportTicket::where('status', TicketStatus::RESOLVED)
             ->where('updated_at', '<=', now()->subHours(config('support.auto_close_resolved_after_hours')))
-            ->update([
-                'status'    => TicketStatus::CLOSED,
-                'closed_at' => now(),
-            ]);
+            ->get()
+            ->each(fn (SupportTicket $ticket) => $this->changeStatus($ticket, TicketStatus::CLOSED))
+            ->count();
     }
 
     /**
-     * Re-read the ticket under a row lock, so a check and the write that follows
-     * it cannot be split by a second request.
+     * Resolve tickets where the customer has stopped responding.
+     *
+     * Only resolve tickets that are awaiting a customer reply.
+     *
+     * @return int The number of tickets resolved.
+     */
+    public function resolveAbandonedConversations(): int
+    {
+        return SupportTicket::where('status', TicketStatus::ASSIGNED)
+            ->where('awaiting_customer', true)
+            ->where('last_message_at', '<=', now()->subMinutes(config('support.abandoned_after_minutes')))
+            ->get()
+            ->each(fn (SupportTicket $ticket) => $this->changeStatus($ticket, TicketStatus::RESOLVED))
+            ->count();
+    }
+
+    /**
+     * Return tickets assigned to agents who are no longer active.
+     *
+     * @return int The number of tickets returned to the queue.
+     */
+    public function releaseTicketsFromAbsentAgents(): int
+    {
+        $presentAgents = SupportAgentStatus::query()->present()->pluck('user_id');
+
+        return SupportTicket::where('status', TicketStatus::ASSIGNED)
+            ->whereNotNull('agent_id')
+            ->whereNotIn('agent_id', $presentAgents)
+            ->where('updated_at', '<=', now()->subMinutes(config('support.agent_presence_ttl_minutes')))
+            ->get()
+            ->each(fn (SupportTicket $ticket) => $this->release($ticket))
+            ->count();
+    }
+
+    /**
+     * Re-read the ticket under a row lock to ensure no other agent is claiming it at the same time.
      */
     private function lockTicket(SupportTicket $ticket): SupportTicket
     {

@@ -8,12 +8,14 @@ use Illuminate\Support\ServiceProvider;
 use Laravel\Sanctum\Sanctum;
 use App\Models\PersonalAccessToken;
 use App\Models\Review;
+use App\Models\SupportTicket;
 use App\Models\Store;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Observers\BusinessCategoryObserver;
 use App\Observers\CouponObserver;
 use App\Observers\ReviewObserver;
+use App\Observers\SupportTicketObserver;
 use App\Observers\StoreObserver;
 use App\Observers\UserAddressObserver;
 use App\Observers\UserObserver;
@@ -44,6 +46,7 @@ class AppServiceProvider extends ServiceProvider
         BusinessCategory::observe(BusinessCategoryObserver::class);
         Store::observe(StoreObserver::class);
         Review::observe(ReviewObserver::class);
+        SupportTicket::observe(SupportTicketObserver::class);
         Coupon::observe(CouponObserver::class);
     }
 }

@@ -14,7 +14,7 @@ class AgentStatusController extends BaseApiController
     public function __construct(private readonly SupportPresenceService $supportPresenceService) {}
 
     /**
-     * The agent's own presence, as the console last left it.
+     * Return the agent's current presence status.
      */
     public function show(): JsonResponse
     {
@@ -23,11 +23,6 @@ class AgentStatusController extends BaseApiController
         return $this->apiResponseShow(new AgentStatusResource($status));
     }
 
-    /**
-     * Go online, step away, or clock off.
-     *
-     * The console also calls this on a timer while open, to keep the agent's presence up to date.
-     */
     public function update(UpdateAvailabilityRequest $request): JsonResponse
     {
         $status = $this->supportPresenceService->heartbeat(

@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\AgentAvailability;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SupportAgentStatus extends BaseModel
@@ -40,5 +42,18 @@ class SupportAgentStatus extends BaseModel
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**** ************* ****/
+    /**** Local Scopes  ****/
+    /**** ************* ****/
+    /**
+     * Agents who are on shift and whose console has been heard from recently.
+     */
+    #[Scope]
+    protected function present(Builder $query): void
+    {
+        $query->where('availability', AgentAvailability::ONLINE)
+            ->where('last_seen_at', '>=', now()->subMinutes(config('support.agent_presence_ttl_minutes')));
     }
 }

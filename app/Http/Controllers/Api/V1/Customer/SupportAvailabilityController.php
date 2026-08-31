@@ -12,9 +12,12 @@ class SupportAvailabilityController extends BaseApiController
 
     /**
      * Tell the customer whether the desk is staffed.
+     *
+     * Asking re-evaluates it, so this read announces a desk that emptied
+     * without anyone signing out. See SupportPresenceService::availability().
      */
     public function __invoke(): JsonResponse
     {
-        return $this->apiResponseShow($this->supportPresenceService->customerSnapshot());
+        return $this->apiResponseShow($this->supportPresenceService->availability());
     }
 }

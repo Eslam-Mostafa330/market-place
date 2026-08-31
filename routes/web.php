@@ -2,4 +2,5 @@
 
 use Illuminate\Support\Facades\Route;
 
-// This is an API-only application; all routes are registered in routes/api/v1.
+Route::view('/support/customer', 'support.customer');
+Route::view('/support/agent', 'support.agent');

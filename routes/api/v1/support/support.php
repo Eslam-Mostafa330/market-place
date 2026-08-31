@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Support\AgentStatusController;
 use App\Http\Controllers\Api\V1\Support\ProfileController;
 use App\Http\Controllers\Api\V1\Support\TicketController;
 use App\Http\Controllers\Api\V1\Support\TicketMessageController;
+use App\Http\Controllers\Api\V1\Support\TicketOrderController;
 use Illuminate\Support\Facades\Route;
 
 # ----- Profile Routes
@@ -27,6 +28,9 @@ Route::controller(TicketController::class)->prefix('tickets')->group(function ()
     Route::post('/{ticket}/claim', 'claim');
     Route::delete('/{ticket}/claim', 'release');
 });
+
+# ----- Ticket Order Route
+Route::get('tickets/{ticket}/order', TicketOrderController::class);
 
 # ----- Ticket Message Routes
 Route::controller(TicketMessageController::class)->prefix('tickets/{ticket}')->group(function () {

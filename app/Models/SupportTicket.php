@@ -29,6 +29,7 @@ class SupportTicket extends BaseModel
         'subject',
         'category',
         'status',
+        'awaiting_customer',
         'last_message_at',
         'first_replied_at',
         'closed_at',
@@ -42,11 +43,12 @@ class SupportTicket extends BaseModel
     protected function casts(): array
     {
         return [
-            'category'         => TicketCategory::class,
-            'status'           => TicketStatus::class,
-            'last_message_at'  => 'datetime',
-            'first_replied_at' => 'datetime',
-            'closed_at'        => 'datetime',
+            'category'          => TicketCategory::class,
+            'status'            => TicketStatus::class,
+            'awaiting_customer' => 'boolean',
+            'last_message_at'   => 'datetime',
+            'first_replied_at'  => 'datetime',
+            'closed_at'         => 'datetime',
         ];
     }
 
@@ -78,7 +80,7 @@ class SupportTicket extends BaseModel
     }
 
     /**
-     * The conversation itself.
+     * The ticket conversation.
      */
     public function messages(): HasMany
     {
@@ -109,7 +111,15 @@ class SupportTicket extends BaseModel
     }
 
     /**
-     * Determine whether the given user is the agent responsible for this ticket.
+     * Determine whether the given user may see this ticket.
+     */
+    public function isVisibleTo(User $user): bool
+    {
+        return $this->requester_id === $user->id || $user->staffsSupportDesk();
+    }
+
+    /**
+     * Determine whether the given user is handling this ticket.
      */
     public function isHandledBy(User $user): bool
     {

@@ -454,7 +454,7 @@ it('closes a resolved ticket the customer never came back to', function () {
 
     $this->travel(config('support.auto_close_resolved_after_hours') + 1)->hours();
 
-    $this->artisan('support:close-stale-tickets')->assertSuccessful();
+    $this->artisan('support:sweep-tickets')->assertSuccessful();
 
     $stale->refresh();
 
@@ -467,7 +467,7 @@ it('leaves a freshly resolved ticket open for the customer to return to', functi
         'requester_id' => $this->customer->id,
     ]);
 
-    $this->artisan('support:close-stale-tickets')->assertSuccessful();
+    $this->artisan('support:sweep-tickets')->assertSuccessful();
 
     expect($recent->fresh()->status)->toBe(TicketStatus::RESOLVED);
 });
@@ -478,10 +478,10 @@ it('never sweeps away a ticket the desk still owes an answer', function () {
 
     $this->travel(config('support.auto_close_resolved_after_hours') + 100)->hours();
 
-    $this->artisan('support:close-stale-tickets')->assertSuccessful();
+    $this->artisan('support:sweep-tickets')->assertSuccessful();
 
     expect($waiting->fresh()->status)->toBe(TicketStatus::OPEN)
-        ->and($ongoing->fresh()->status)->toBe(TicketStatus::ASSIGNED);
+        ->and($ongoing->fresh()->status)->not->toBe(TicketStatus::CLOSED);
 });
 
 it('caps a long conversation instead of sending all of it', function () {
@@ -501,7 +501,6 @@ it('caps a long conversation instead of sending all of it', function () {
     expect($response->json('data'))->toHaveCount($perPage)
         ->and($response->json('meta.next_cursor'))->not->toBeNull();
 
-    // the whole conversation cannot be demanded in one response
     $flood = $this->getJson("/api/v1/support/tickets/{$ticket->id}/messages?pagination=none&per_page=1000")->assertOk();
 
     expect($flood->json('data'))->toHaveCount($perPage);
@@ -510,7 +509,6 @@ it('caps a long conversation instead of sending all of it', function () {
 it('walks a whole conversation by cursor without losing or repeating a message', function () {
     $ticket = SupportTicket::factory()->assignedTo($this->agent)->create(['requester_id' => $this->customer->id]);
 
-    // all written within the same second, which is what breaks a created_at-only cursor
     $written = SupportMessage::factory()->count(70)->create([
         'ticket_id' => $ticket->id,
         'sender_id' => $this->agent->id,
@@ -547,7 +545,6 @@ it('does not repeat a message when a new one arrives mid scroll', function () {
     $first  = $this->getJson("/api/v1/support/tickets/{$ticket->id}/messages")->assertOk();
     $cursor = $first->json('meta.next_cursor');
 
-    // the customer answers while the agent is still scrolling back
     SupportMessage::factory()->create(['ticket_id' => $ticket->id, 'sender_id' => $this->customer->id]);
 
     $second = $this->getJson("/api/v1/support/tickets/{$ticket->id}/messages?cursor={$cursor}")->assertOk();
@@ -664,12 +661,9 @@ it('shows the requester without handing out their id', function () {
         ->and(array_keys($response->json('data.agent')))->toBe(['id', 'name']);
 });
 
-/*
-|--------------------------------------------------------------------------
-| Presence
-|--------------------------------------------------------------------------
-*/
-
+/**
+ * Presence
+ */
 it('reports an agent as offline before they ever check in', function () {
     $this->actingAs($this->agent);
 
@@ -709,7 +703,7 @@ it('tells the customer the desk is staffed without naming anyone', function () {
 it('treats a stale heartbeat as nobody being there', function () {
     goOnline($this->agent);
 
-    $this->travel(config('support.agent_presence_ttl_seconds') + 60)->seconds();
+    $this->travel(config('support.agent_presence_ttl_minutes') + 1)->minutes();
 
     $this->actingAs($this->customer);
 
@@ -749,4 +743,142 @@ it('lets an admin work the agent desk', function () {
 
 it('turns away an agent who is not logged in', function () {
     $this->getJson('/api/v1/support/tickets')->assertUnauthorized();
+});
+
+/**
+ * The requester's orders, beside the ticket
+ */
+it('shows the desk the order the ticket is about', function () {
+    $order  = Order::factory()->create(['customer_id' => $this->customer->id]);
+    $ticket = SupportTicket::factory()->assignedTo($this->agent)->create([
+        'requester_id' => $this->customer->id,
+        'order_id'     => $order->id,
+    ]);
+
+    $this->actingAs($this->agent);
+
+    $response = $this->getJson("/api/v1/support/tickets/{$ticket->id}/order")->assertOk();
+
+    expect($response->json('data.order_number'))->toBe($order->order_number)
+        ->and($response->json('data'))->toHaveKeys(['order_status', 'payment_status', 'total', 'placed_at', 'items']);
+});
+
+it('has no order to show for a ticket that names none', function () {
+    $ticket = SupportTicket::factory()->assignedTo($this->agent)->create(['requester_id' => $this->customer->id]);
+
+    $this->actingAs($this->agent);
+
+    $this->getJson("/api/v1/support/tickets/{$ticket->id}/order")->assertNotFound();
+});
+
+it('keeps a customer away from the desk order lookup', function () {
+    $ticket = SupportTicket::factory()->create(['requester_id' => $this->customer->id]);
+
+    $this->actingAs($this->customer);
+
+    $this->getJson("/api/v1/support/tickets/{$ticket->id}/order")->assertNotFound();
+});
+
+/**
+ * Conversations nobody came back to
+ */
+it('resolves a conversation the customer walked away from', function () {
+    $ticket = SupportTicket::factory()->assignedTo($this->agent)->create(['requester_id' => $this->customer->id]);
+
+    app(SupportMessageService::class)->post($ticket, $this->agent, 'Anything else I can help with?');
+
+    $this->travel(config('support.abandoned_after_minutes') + 5)->minutes();
+
+    $this->artisan('support:sweep-tickets')->assertSuccessful();
+
+    expect($ticket->fresh()->status)->toBe(TicketStatus::RESOLVED);
+});
+
+it('never abandons a customer who is waiting for an answer', function () {
+    $ticket = SupportTicket::factory()->assignedTo($this->agent)->create(['requester_id' => $this->customer->id]);
+
+    app(SupportMessageService::class)->post($ticket, $this->agent, 'Let me check that');
+    app(SupportMessageService::class)->post($ticket, $this->customer, 'Any update?');
+
+    $this->travel(config('support.abandoned_after_minutes') + 5)->minutes();
+
+    $this->artisan('support:sweep-tickets')->assertSuccessful();
+
+    expect($ticket->fresh()->status)->not->toBe(TicketStatus::RESOLVED)
+        ->and($ticket->fresh()->awaiting_customer)->toBeFalse();
+});
+
+it('hands back the tickets of an agent who disappeared', function () {
+    goOnline($this->agent);
+
+    $ticket = SupportTicket::factory()->assignedTo($this->agent)->create(['requester_id' => $this->customer->id]);
+
+    $this->travel(config('support.agent_presence_ttl_minutes') + 5)->minutes();
+
+    $this->artisan('support:sweep-tickets')->assertSuccessful();
+
+    $ticket->refresh();
+
+    expect($ticket->agent_id)->toBeNull()
+        ->and($ticket->status)->toBe(TicketStatus::OPEN);
+});
+
+it('leaves the tickets of an agent who is still there', function () {
+    goOnline($this->agent);
+
+    $ticket = SupportTicket::factory()->assignedTo($this->agent)->create(['requester_id' => $this->customer->id]);
+
+    $this->artisan('support:sweep-tickets')->assertSuccessful();
+
+    expect($ticket->fresh()->agent_id)->toBe($this->agent->id);
+});
+
+/**
+ * Presence without a clock
+ */
+it('keeps a working agent online without any ping of its own', function () {
+    goOnline($this->agent);
+
+    $this->travel(5)->minutes();
+
+    $this->actingAs($this->agent);
+    $this->getJson('/api/v1/support/tickets')->assertOk();
+
+    $status = SupportAgentStatus::where('user_id', $this->agent->id)->firstOrFail();
+
+    expect($status->last_seen_at->diffInSeconds(now()))->toBeLessThan(5)
+        ->and(app(SupportPresenceService::class)->deskIsStaffed())->toBeTrue();
+});
+
+it('does not sign an agent back in just because they made a request', function () {
+    goOnline($this->agent, AgentAvailability::OFFLINE);
+
+    $this->actingAs($this->agent);
+    $this->getJson('/api/v1/support/tickets')->assertOk();
+
+    expect(SupportAgentStatus::where('user_id', $this->agent->id)->firstOrFail()->availability)
+        ->toBe(AgentAvailability::OFFLINE)
+        ->and(app(SupportPresenceService::class)->deskIsStaffed())->toBeFalse();
+});
+
+it('lets an idle agent go quiet on their own', function () {
+    goOnline($this->agent);
+
+    $this->travel(config('support.agent_presence_ttl_minutes') + 1)->minutes();
+
+    expect(app(SupportPresenceService::class)->deskIsStaffed())->toBeFalse();
+});
+
+it('leaves reassignment to the sweep rather than to whoever opens the queue', function () {
+    $absent = User::factory()->support()->create();
+    goOnline($absent);
+
+    $ticket = SupportTicket::factory()->assignedTo($absent)->create(['requester_id' => $this->customer->id]);
+
+    $this->travel(config('support.agent_presence_ttl_minutes') + 5)->minutes();
+
+    $this->actingAs($this->agent);
+    $this->getJson('/api/v1/support/tickets')->assertOk();
+
+    expect($ticket->fresh()->agent_id)->toBe($absent->id);
 });

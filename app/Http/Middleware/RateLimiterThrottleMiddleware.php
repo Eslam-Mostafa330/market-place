@@ -13,12 +13,18 @@ class RateLimiterThrottleMiddleware
     use ApiResponse;
 
     /**
-     * Paths exempt from throttling because they authenticate per request by
-     * signature rather than by client identity.
+     * Paths that use their own authentication and are not throttled.
      */
     private const UNLIMITED_PATHS = [
         'api/v1/stripe/webhook',
     ];
+
+    /**
+     * Path used for websocket channel authentication.
+     *
+     * Count it as a read since reconnects should not affect write limits.
+     */
+    private const HANDSHAKE_PATH = 'api/v1/broadcasting/auth';
 
     /**
      * Staff routes are throttled only before login.
@@ -85,6 +91,10 @@ class RateLimiterThrottleMiddleware
 
         if (str_contains($routeName, '.auth.')) {
             return 'auth';
+        }
+
+        if ($request->is(self::HANDSHAKE_PATH)) {
+            return 'general';
         }
 
         if (in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
